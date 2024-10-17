@@ -262,7 +262,7 @@ ed25519_verify_var:
  *
  * Flags: Flags have no meaning beyond the scope of this subroutine.
  *
- * @param[in]  dmem[ed25519_d]: secret key (256 bits)
+ * @param[in]  dmem[ed25519_hash_h]: hash of secret key (512 bits)
  * @param[in]  dmem[ed25519_ctx]: context string (ctx_len bytes)
  * @param[in]  dmem[ed25519_ctx_len]: length of context string in bytes
  * @param[in]  dmem[ed25519_message]: pre-hashed message (512 bits)
@@ -277,15 +277,6 @@ ed25519_sign_prehashed:
   /* Initialize all-zero register. */
   bn.xor   w31, w31, w31
 
-  /* Call the SHA-512 routine to hash d.
-       dmem[ed25519_hash_h] <= SHA-512(d) = h */
-  jal      x1, sha512_init
-  li       x18, 32
-  la       x20, ed25519_d
-  jal      x1, sha512_update
-  la       x18, ed25519_hash_h
-  jal      x1, sha512_final
-
   /* Append the context length to the domain separator prefix.
        dmem[ed25519_prehash_dom_sep+33] <= ctx_len */
   la       x2, ed25519_ctx_len
@@ -294,7 +285,7 @@ ed25519_sign_prehashed:
   la       x3, ed25519_prehash_dom_sep
   lw       x4, 32(x3)
   or       x4, x4, x2
-  sw       x4, 0(x3)
+  sw       x4, 32(x3)
 
   /* dmem[ed25519_r] <= SHA-512(domain-separator || h[63:32] || PH(M)) */
   jal      x1, sha512_init
@@ -460,22 +451,41 @@ ed25519_sign_prehashed:
        w18 <= [w17:w16] mod L = k mod L */
   jal      x1, sc_reduce
 
-  /* Save k for later.
-       w4 <= k mod L */
-  bn.mov   w4, w18
+  /* Load the 256-bit lower half of the hash h.
+       w16 <= h[255:0] */
+  li       x2, 16
+  la       x3, ed25519_hash_h
+  bn.lid   x2, 0(x3)
+
+  /* Recover the secret scalar s from h.
+       w16 <= s */
+  jal      x1, sc_clamp
 
   /* Compute the signature scalar S = (r + (k * s)) mod L. Note: s is not fully
      reduced modulo L here, but that is permitted according to the
      specification of sc_mul, which only requires that its inputs fit in 256
      bits. */
 
-  /* w18 <= (w4 * w5) mod L = (k * s) mod L */
-  bn.mov   w21, w4
-  bn.mov   w22, w5
+  /* w4 <= (w18 * w16) mod L = (k * s) mod L */
+  bn.mov   w21, w18
+  bn.mov   w22, w16
   jal      x1, sc_mul
+  bn.mov   w4, w18
 
-  /* w4 <= (w5 + w18) mod L = (r + k * s) mod L = S */
-  bn.addm  w4, w5, w18
+  /* Load the 512-bit hash r.
+       [w17:w16] <= r */
+  li       x2, 16
+  la       x3, ed25519_hash_r
+  bn.lid   x2, 0(x3++)
+  addi     x2, x2, 1
+  bn.lid   x2, 0(x3)
+
+  /* Reduce r modulo L.
+       w18 <= [w17:w16] mod L = r mod L */
+  jal      x1, sc_reduce
+
+  /* w4 <= (w4 + w18) mod L = (r + k * s) mod L = S */
+  bn.addm  w4, w4, w18
 
   /* Write S to dmem.
        dmem[ed25519_sig_S] <= w4 = S */
@@ -1719,8 +1729,8 @@ ed25519_d:
   .word 0x2b6ffe73
   .word 0x52036cee
 
-/* Ed25519 pre-hash domain separator (256 bits).
-     Equal to 'SigEd25519 no Ed25519 collisions' followed by a 1 byte (33 bytes total). */
+/* Ed25519 pre-hash domain separator.
+   Equal to 'SigEd25519 no Ed25519 collisions' followed by a 1 byte (33 bytes total). */
 ed25519_prehash_dom_sep:
   .word 0x45676953
   .word 0x35353264
