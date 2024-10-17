@@ -1,3 +1,7 @@
+# Copyright zeroRISC Inc.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -37,6 +41,22 @@ otbn_consttime_test(
     subroutine = "ext_add",
     deps = [
         ":ed25519_ext_add_test",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_ext_scmul_test",
+    srcs = [
+        "ed25519_ext_scmul_test.s",
+    ],
+    exp = "ed25519_ext_scmul_test.exp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
     ],
 )
 
