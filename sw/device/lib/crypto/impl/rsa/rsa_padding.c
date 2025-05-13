@@ -2,14 +2,13 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-#include "sw/device/lib/crypto/impl/rsa/rsa_padding.h"
-
 #include "sw/device/lib/base/hardened.h"
 #include "sw/device/lib/base/hardened_memory.h"
 #include "sw/device/lib/base/math.h"
 #include "sw/device/lib/crypto/drivers/entropy.h"
 #include "sw/device/lib/crypto/drivers/hmac.h"
 #include "sw/device/lib/crypto/drivers/kmac.h"
+#include "sw/device/lib/crypto/impl/rsa/rsa_padding.h"
 
 // Module ID for status codes.
 #define MODULE_ID MAKE_MODULE_ID('r', 'p', 'a')
@@ -213,6 +212,7 @@ status_t rsa_padding_pkcs1v15_verify(
   uint32_t expected_encoded_message[encoded_message_len];
   HARDENED_TRY(rsa_padding_pkcs1v15_encode(message_digest, encoded_message_len,
                                            expected_encoded_message));
+
   // Compare with the expected value.
   *result = hardened_memeq(encoded_message, expected_encoded_message,
                            ARRAYSIZE(expected_encoded_message));
