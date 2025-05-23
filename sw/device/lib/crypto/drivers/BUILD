@@ -30,6 +30,7 @@ cc_library(
     hdrs = ["aes.h"],
     deps = [
         ":entropy",
+        ":rv_core_ibex",
         "//hw/ip/aes/data:aes_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",
@@ -65,6 +66,7 @@ cc_library(
     ],
     deps = [
         ":entropy",
+        ":rv_core_ibex",
         "//hw/ip/keymgr/data:keymgr_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",
@@ -110,6 +112,7 @@ cc_library(
     ],
     deps = [
         ":entropy",
+        ":rv_core_ibex",
         "//hw/ip/kmac/data:kmac_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",

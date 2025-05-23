@@ -161,6 +161,10 @@ status_t keymgr_generate_key_sw(keymgr_diversification_t diversification,
   keymgr_start(diversification);
   HARDENED_TRY(keymgr_wait_until_done());
 
+  // Randomize the destination buffer.
+  hardened_memshred(key->share0, kKeymgrOutputShareNumWords);
+  hardened_memshred(key->share1, kKeymgrOutputShareNumWords);
+
   // Collect output.
   hardened_mmio_read(key->share0,
                      kBaseAddr + KEYMGR_SW_SHARE0_OUTPUT_0_REG_OFFSET,
