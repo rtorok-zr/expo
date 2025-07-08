@@ -37,6 +37,7 @@ jobs:
           # FPGA-specific setup steps, such as adding the Vivado Lab binary
           # directory to the $GITHUB_PATH .
           fpga: vcu118
+          vivado-lab-version: '2024.1'
       - name: Show environment
         run: ./ci/scripts/show-env.sh
       - name: Program bitstream to the VCU118
@@ -55,11 +56,13 @@ jobs:
               # Dump 1 second of UART output to a file.
               timeout 1 cat $tty > yes.out || true
               # For comparison, create a file with 1024 `y` characters.
-              yes | head -n 1024 > temp.out
-              tr -d '\n' < temp.out > expected.out
+              for i in {1..1024}; do
+                  echo -n 'y' >> temp.out;
+              done;
               # Compare the first 1024 bytes of the UART output with the
               # expected.
               head -c 1024 yes.out > actual.out
+              cat actual.out
               # If we find the output, print it.
               if cmp -s expected.out actual.out; then
                 echo "Found output on ${tty}:"
@@ -86,6 +89,7 @@ jobs:
         uses: ./.github/actions/prepare-env
         with:
           fpga: vcu118
+          vivado-lab-version: '2024.1'
       - name: Show environment
         run: ./ci/scripts/show-env.sh
       - name: Program bitstream to the VCU118
