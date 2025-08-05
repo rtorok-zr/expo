@@ -353,7 +353,7 @@ static status_t run_test_vector(void) {
   };
 
   LOG_INFO("Running the first KDF-KMAC sideload operation.");
-  TRY(otcrypto_kmac_kdf(current_test_vector->key_derivation_key,
+  TRY(otcrypto_kmac_kdf(&current_test_vector->key_derivation_key,
                         current_test_vector->label,
                         current_test_vector->context, &keying_material1));
 
@@ -393,7 +393,7 @@ static status_t run_test_vector(void) {
   }
 
   LOG_INFO("Running the second KDF-KMAC sideload operation for comparison.");
-  TRY(otcrypto_kmac_kdf(current_test_vector->key_derivation_key,
+  TRY(otcrypto_kmac_kdf(&current_test_vector->key_derivation_key,
                         current_test_vector->label,
                         current_test_vector->context, &keying_material2));
 
