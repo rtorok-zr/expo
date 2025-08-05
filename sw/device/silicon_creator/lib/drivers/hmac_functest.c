@@ -122,9 +122,9 @@ rom_error_t hmac_hmac_sha256_test(void) {
 
 rom_error_t hmac_hmac_sha256_unaligned_test(void) {
   hmac_digest_t digest;
-  hmac_hmac_sha256(kGettysburgPreludeUnaligned.payload,
-                   sizeof(kGettysburgPreludeUnaligned.payload) - 1, kHmacKey,
-                   /*big_endian_digest=*/false, &digest);
+  sc_hmac_hmac_sha256(kGettysburgPreludeUnaligned.payload,
+                      sizeof(kGettysburgPreludeUnaligned.payload) - 1, kHmacKey,
+                      /*big_endian_digest=*/false, &digest);
   const size_t len = ARRAYSIZE(digest.digest);
   for (int i = 0; i < len; ++i) {
     LOG_INFO("word %d = 0x%08x", i, digest.digest[i]);
