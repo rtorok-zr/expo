@@ -11,6 +11,22 @@ load("//rules:otbn.bzl", "otbn_consttime_test", "otbn_library", "otbn_sim_test",
 package(default_visibility = ["//visibility:public"])
 
 otbn_sim_test(
+    name = "ed25519_encode_decode_test",
+    srcs = [
+        "ed25519_encode_decode_test.s",
+    ],
+    exp = "ed25519_encode_decode_test.exp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
+    ],
+)
+
+otbn_sim_test(
     name = "ed25519_ext_add_test",
     srcs = [
         "ed25519_ext_add_test.s",
@@ -18,7 +34,11 @@ otbn_sim_test(
     exp = "ed25519_ext_add_test.exp",
     deps = [
         "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
     ],
 )
 
@@ -31,6 +51,22 @@ otbn_consttime_test(
 )
 
 otbn_sim_test(
+    name = "ed25519_ext_scmul_test",
+    srcs = [
+        "ed25519_ext_scmul_test.s",
+    ],
+    exp = "ed25519_ext_scmul_test.exp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
+    ],
+)
+
+otbn_sim_test(
     name = "ed25519_scalar_test",
     srcs = [
         "ed25519_scalar_test.s",
@@ -38,6 +74,54 @@ otbn_sim_test(
     exp = "ed25519_scalar_test.exp",
     deps = [
         "//sw/otbn/crypto:ed25519_scalar",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_sign_prehashed_test",
+    srcs = [
+        "ed25519_sign_prehashed_test.s",
+    ],
+    dexp = "ed25519_sign_prehashed_test.dexp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_verify_test",
+    srcs = [
+        "ed25519_verify_test.s",
+    ],
+    exp = "ed25519_verify_test.exp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
+    ],
+)
+
+otbn_sim_test(
+    name = "ed25519_verify_test2",
+    srcs = [
+        "ed25519_verify_test2.s",
+    ],
+    exp = "ed25519_verify_test2.exp",
+    deps = [
+        "//sw/otbn/crypto:ed25519",
+        "//sw/otbn/crypto:ed25519_scalar",
+        "//sw/otbn/crypto:field25519",
+        "//sw/otbn/crypto:sha512_compact",
+        "//sw/otbn/crypto:sha512_padding",
+        "//sw/otbn/crypto:sha512_interface",
     ],
 )
 
@@ -1261,6 +1345,30 @@ otbn_sim_test(
     ],
     exp = "sha512_compact_test.exp",
     deps = [
+        "//sw/otbn/crypto:sha512_compact",
+    ],
+)
+
+otbn_sim_test(
+    name = "sha512_padding_test",
+    srcs = [
+        "sha512_padding_test.s",
+    ],
+    exp = "sha512_padding_test.exp",
+    deps = [
+        "//sw/otbn/crypto:sha512_padding",
+    ],
+)
+
+otbn_sim_test(
+    name = "sha512_interface_test",
+    srcs = [
+        "sha512_interface_test.s",
+    ],
+    exp = "sha512_interface_test.exp",
+    deps = [
+        "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_compact",
     ],
 )
