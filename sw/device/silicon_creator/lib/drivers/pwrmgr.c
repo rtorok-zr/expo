@@ -11,7 +11,7 @@
 #include "sw/device/silicon_creator/lib/drivers/ibex.h"
 #include "sw/device/silicon_creator/lib/error.h"
 
-#include "pwrmgr_regs.h"
+#include "hw/top/pwrmgr_regs.h"
 
 static inline uint32_t pwrmgr_base(void) {
   return dt_pwrmgr_primary_reg_block(kDtPwrmgrAon);
