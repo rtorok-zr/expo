@@ -31,6 +31,8 @@ load(
     "//sw/device/silicon_creator/rom_ext/e2e:defs.bzl",
     "OWNER_SLOTS",
 )
+load("@//rules:signing.bzl", "offline_presigning_artifacts", "offline_signature_attach")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -45,7 +47,7 @@ opentitan_binary(
     testonly = True,
     srcs = ["sram_cp_provision.c"],
     exec_env = {
-        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+        "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
         "//hw/top_earlgrey:silicon_creator": None,
     },
@@ -85,7 +87,7 @@ opentitan_binary(
     testonly = True,
     srcs = ["sram_cp_provision_functest.c"],
     exec_env = {
-        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+        "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
         "//hw/top_earlgrey:silicon_creator": None,
     },
@@ -129,7 +131,7 @@ _CP_PROVISIONING_HARNESS = "//sw/host/provisioning/cp"
 opentitan_test(
     name = "cp_provision",
     exec_env = {
-        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+        "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
         "//hw/top_earlgrey:silicon_creator": None,
     },
@@ -137,7 +139,7 @@ opentitan_test(
         binaries = {":sram_cp_provision": "sram_cp_provision"},
         changes_otp = True,
         needs_jtag = True,
-        otp = "//hw/top_earlgrey/data/otp/sival_skus:otp_img_test_unlocked0_manuf_empty",
+        otp = "//hw/top_earlgrey/data/otp/emulation:otp_img_test_unlocked0_manuf_empty",
         tags = ["manuf"],
         test_cmd = _CP_PROVISIONING_CMD_ARGS,
         test_harness = _CP_PROVISIONING_HARNESS,
@@ -155,7 +157,7 @@ opentitan_test(
 opentitan_test(
     name = "cp_provision_functest",
     exec_env = {
-        "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+        "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
         "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
     },
     fpga = fpga_params(
@@ -181,7 +183,7 @@ opentitan_test(
         testonly = True,
         srcs = ["sram_ft_individualize.c"],
         exec_env = {
-            "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+            "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
             "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
             "//hw/top_earlgrey:silicon_creator": None,
         },
@@ -245,7 +247,7 @@ cc_library(
         ":personalize_ext",
         "//sw/device/lib/crypto/drivers:entropy",
         "//sw/device/lib/dif:flash_ctrl",
-        "//sw/device/lib/runtime:log",
+        "//sw/device/lib/runtime:print",
         "//sw/device/lib/testing/test_framework:status",
         "//sw/device/lib/testing/test_framework:ujson_ottf",
         "//sw/device/silicon_creator/lib:attestation",
@@ -302,7 +304,7 @@ manifest(d = {
         srcs = ["ft_personalize.c"],
         ecdsa_key = {"//sw/device/silicon_creator/rom/keys/fake/ecdsa:prod_key_0_ecdsa_p256": "prod_key_0"},
         exec_env = {
-            "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+            "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
             "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
             "//hw/top_earlgrey:silicon_creator": None,
         },
@@ -351,7 +353,7 @@ manifest(d = {
 _FT_PROVISIONING_CMD_ARGS = """
   --elf={sram_ft_individualize}
   --bootstrap={ft_personalize}
-  --second-bootstrap={firmware}
+  --second-bootstrap={bundle}
   --ca-config={ca_config}
 """ + FT_PROVISIONING_INPUTS
 
@@ -362,12 +364,17 @@ _FT_PROVISIONING_HARNESS = "//sw/host/provisioning/ft:ft_{}"
         name = "ft_fw_bundle_{}".format(sku),
         testonly = True,
         bins = {
-            ":ft_personalize_{}".format(sku): SLOTS["a"],
+            # Use a pre-compiled perso binary if the SKU defines it,
+            # else use the label of the opentitan_binary for the SKU.
+            config.get(
+                "perso_bin",
+                ":ft_personalize_{}".format(sku),
+            ): SLOTS["a"],
             config["rom_ext"]: SLOTS["b"],
             config["owner_fw"]: OWNER_SLOTS["b"],
         },
         exec_env = [
-            "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys",
+            "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys",
             "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys",
             "//hw/top_earlgrey:silicon_creator",
         ],
@@ -392,26 +399,29 @@ filegroup(
     opentitan_test(
         name = "ft_provision_{}".format(sku),
         exec_env = {
-            "//hw/top_earlgrey:fpga_hyper310_rom_with_fake_keys": None,
+            "//hw/top_earlgrey:fpga_cw310_rom_with_fake_keys": None,
             "//hw/top_earlgrey:fpga_cw340_rom_with_fake_keys": None,
             "//hw/top_earlgrey:fpga_cw340_sival": None,
             "//hw/top_earlgrey:silicon_creator": None,
         },
         fpga = fpga_params(
             timeout = "moderate",
-            assemble = "{ft_personalize}@{rom_ext_slot_a} {rom_ext}@{rom_ext_slot_b} {owner_fw}@{owner_slot_b}",
             binaries =
                 {
                     ":sram_ft_individualize_{}".format(config["otp"]): "sram_ft_individualize",
-                    ":ft_personalize_{}".format(sku): "ft_personalize",
-                    config["rom_ext"]: "rom_ext",
-                    config["owner_fw"]: "owner_fw",
+                    # Use a pre-compiled perso binary if the SKU defines it,
+                    # else use the label of the opentitan_binary for the SKU.
+                    config.get(
+                        "perso_bin",
+                        ":ft_personalize_{}".format(sku),
+                    ): "ft_personalize",
                     config["ca_config"]: "ca_config",
+                    ":ft_fw_bundle_{}".format(sku): "bundle",
                 },
             changes_otp = True,
             data = config["ca_data"],
             needs_jtag = True,
-            otp = "//hw/top_earlgrey/data/otp/sival_skus:otp_img_test_locked0_manuf_initialized",
+            otp = "//hw/top_earlgrey/data/otp/emulation:otp_img_test_locked0_manuf_initialized",
             owner_slot_b = OWNER_SLOTS["b"],
             rom_ext_slot_a = SLOTS["a"],
             rom_ext_slot_b = SLOTS["b"],
@@ -423,14 +433,17 @@ filegroup(
             test_harness = _FT_PROVISIONING_HARNESS.format(sku),
         ),
         silicon = silicon_params(
-            assemble = "{ft_personalize}@{rom_ext_slot_a} {rom_ext}@{rom_ext_slot_b} {owner_fw}@{owner_slot_b}",
             binaries =
                 {
                     ":sram_ft_individualize_{}".format(config["otp"]): "sram_ft_individualize",
-                    ":ft_personalize_{}".format(sku): "ft_personalize",
-                    config["rom_ext"]: "rom_ext",
-                    config["owner_fw"]: "owner_fw",
+                    # Use a pre-compiled perso binary if the SKU defines it,
+                    # else use the label of the opentitan_binary for the SKU.
+                    config.get(
+                        "perso_bin",
+                        ":ft_personalize_{}".format(sku),
+                    ): "ft_personalize",
                     config["ca_config"]: "ca_config",
+                    ":ft_fw_bundle_{}".format(sku): "bundle",
                 },
             changes_otp = True,
             data = config["ca_data"],
@@ -450,7 +463,7 @@ test_suite(
     name = "ft_provision_cw310",
     tags = ["manual"],
     tests = [
-        ":ft_provision_{}_fpga_hyper310_rom_with_fake_keys".format(sku)
+        ":ft_provision_{}_fpga_cw310_rom_with_fake_keys".format(sku)
         for sku in EARLGREY_SKUS.keys()
     ],
 )
@@ -462,4 +475,45 @@ test_suite(
         ":ft_provision_{}_fpga_cw340_rom_with_fake_keys".format(sku)
         for sku in EARLGREY_SKUS.keys()
     ],
+)
+
+_DISQUALIFIED_FOR_SIGNING = ["emulation"]
+
+[
+    offline_presigning_artifacts(
+        name = "provisioning_{}".format(sku),
+        testonly = True,
+        srcs = [":ft_personalize_{}".format(sku)],
+        ecdsa_key = data["ecdsa_key"],
+        manifest = ":manifest_perso",
+        tags = ["manual"],
+    )
+    for sku, data in EARLGREY_SKUS.items()
+    if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+]
+
+pkg_tar(
+    name = "digests",
+    testonly = True,
+    srcs = [
+        ":provisioning_{}".format(sku)
+        for sku, data in EARLGREY_SKUS.items()
+        if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+    ],
+    mode = "0644",
+    tags = ["manual"],
+)
+
+offline_signature_attach(
+    name = "signed",
+    testonly = True,
+    srcs = [
+        ":provisioning_{}".format(sku)
+        for sku, data in EARLGREY_SKUS.items()
+        if data["otp"] not in _DISQUALIFIED_FOR_SIGNING
+    ],
+    ecdsa_signatures = [
+        "//sw/device/silicon_creator/manuf/base/signatures:ecdsa_signatures",
+    ],
+    tags = ["manual"],
 )

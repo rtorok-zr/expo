@@ -447,10 +447,8 @@
     ]
   }
   num_cores: "1"
-  interrupts:
-  {
-    default_plic: rv_plic
-  }
+  default_plic: rv_plic
+  default_alert_handler: alert_handler
   addr_spaces:
   [
     {
@@ -644,7 +642,7 @@
         GpioAsHwStrapsEn: "1"
         GpioAsyncOn: "1"
       }
-      ipgen_param:
+      ipgen_params:
       {
         num_inp_period_counters: 8
       }
@@ -1209,7 +1207,7 @@
           randcount: 40
           randtype: data
           name_top: RndCnstOtpCtrlLfsrSeed
-          default: 0x58fa9063ce
+          default: 0x272efaa51f
           randwidth: 40
         }
         {
@@ -1219,7 +1217,7 @@
           randcount: 40
           randtype: perm
           name_top: RndCnstOtpCtrlLfsrPerm
-          default: 0x2dd6809079e67935a195848e7ca5065c47018d980335588c44f1494026c8
+          default: 0x34f8105ca31378705d70b6420112544a28d56256a659b9c63a11487e4103
           randwidth: 240
         }
         {
@@ -1229,7 +1227,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstOtpCtrlScrmblKeyInit
-          default: 0xe34f64ce978305bfc3481a2162ea2792b7508f1eab067af954dda5491439a9dd
+          default: 0x55176264e55c329c8ae4725aeaf6728150127ac755d70063277642b5309a1639
           randwidth: 256
         }
       ]
@@ -1840,7 +1838,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstLcCtrlLcKeymgrDivInvalid
-          default: 0xe6320801fdcf25a4fba528399117069e
+          default: 0x90b966cd494444c3bcdf8087b7facd65
           randwidth: 128
         }
         {
@@ -1850,7 +1848,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstLcCtrlLcKeymgrDivTestUnlocked
-          default: 0x77c887f53dda6fb4ef8758b99027b6aa
+          default: 0xe9654cd85bc66d10208c4fb51b97bbf4
           randwidth: 128
         }
         {
@@ -1860,7 +1858,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstLcCtrlLcKeymgrDivDev
-          default: 0x7468bc0bd8d70368e7cfb11a99675b14
+          default: 0xd12c378ccfd6a5a5bf3032db51fa1eb9
           randwidth: 128
         }
         {
@@ -1870,7 +1868,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstLcCtrlLcKeymgrDivProduction
-          default: 0x6240619335a9e2d123834d18744778be
+          default: 0x2f6ce10e90f9c5c06f733dc911a321dd
           randwidth: 128
         }
         {
@@ -1880,7 +1878,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstLcCtrlLcKeymgrDivRma
-          default: 0x5e63c087e36838b56b1a45f6fd312f53
+          default: 0x4c0ac2406d467215dab3f2b54a52e672
           randwidth: 128
         }
         {
@@ -1890,7 +1888,7 @@
           randcount: 1024
           randtype: data
           name_top: RndCnstLcCtrlInvalidTokens
-          default: 0x53fa7b2ce9fc83ddaf1dd8c5a42e2ad24fa02221b6ff5aad7a9c09d5d9fdd1cfcf512835c0cfae2ed0c69fa488685cea9bc1c89bfb7399aef5c6eb5d6e4e23416a0aa6d7ac7ec9c3304470fbe505f9649400ca9864fd4ce49d2cfc6ecc102540ead8734700a5207132689471aa822bc51cdd4d37ac2d246c4264f37ec1982017
+          default: 0x8678af0718068e344d2eae4d73c8fa54de8aa4a4f258f3b2a145fd1950ae55d693e57968117e66dc634155e0f8150242862eb20eea9a1f7544716551512a112ded678ce824a08e29c772795a358ec30f1bedd1af0ec9d9a9cf36a2b130d32afe121af734f628363aaa0e93d45c423690ed05bd1e710f22d1095889fbd8a7b57f
           randwidth: 1024
         }
         {
@@ -2492,7 +2490,7 @@
           randcount: 32
           randtype: data
           name_top: RndCnstAlertHandlerLfsrSeed
-          default: 0x94adda1b
+          default: 0xb1e11df3
           randwidth: 32
         }
         {
@@ -2502,7 +2500,7 @@
           randcount: 32
           randtype: perm
           name_top: RndCnstAlertHandlerLfsrPerm
-          default: 0x2c7c7806d8fe46f651c95dc1b36ba44554de4e42
+          default: 0x47c16293507a44a96f3499cc30dfb57362be7b0c
           randwidth: 160
         }
         {
@@ -4425,7 +4423,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlRetAonSramKey
-          default: 0x21d8cb69d4f3a15faf834cad515d76bd
+          default: 0xa1dcd0488805541166f1ec8ceb42692b
           randwidth: 128
         }
         {
@@ -4435,7 +4433,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlRetAonSramNonce
-          default: 0x37c7bec5f33fdca11a72dc05a2313b71
+          default: 0x89a6f99b1a7ac084224ade4612980d4
           randwidth: 128
         }
         {
@@ -4445,7 +4443,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstSramCtrlRetAonLfsrSeed
-          default: 0x8e6d6dbb8ec647d1
+          default: 0x8e6c6493a50eedba
           randwidth: 64
         }
         {
@@ -4455,7 +4453,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstSramCtrlRetAonLfsrPerm
-          default: 0xb7742874b52317695c3cdd614d1c1702a7ef13bf561e078a9826ccac36bc9e9b9988623193efc9e7254ed330584bab38
+          default: 0x2566eb213c537de7ba1307f72bc145aad3533ad9f0fe2482b8c847586c256d5c7be0406df33a34529e4f0b9a279aa71
           randwidth: 384
         }
         {
@@ -4857,6 +4855,7 @@
           width: 1
           default: lc_ctrl_pkg::Off
           inst_name: rv_dm
+          top_signame: lc_ctrl_lc_dft_en
           index: -1
         }
         {
@@ -5308,7 +5307,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstAesClearingLfsrSeed
-          default: 0x2482cc34468c37bf
+          default: 0x14a8f2b75c265c9c
           randwidth: 64
         }
         {
@@ -5318,7 +5317,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstAesClearingLfsrPerm
-          default: 0x57677e4b32baaafaf9e2c13099a62759b8bcfde7f5d219714ce9012293d9a10b8d0095f28d42d18031771fd32d08673b
+          default: 0x47641a7feca51196fa8832697778edac7e2f63520d2a7594ccc9803ce5ee574782170efde6890b806053aa1712c7cfec
           randwidth: 384
         }
         {
@@ -5328,7 +5327,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstAesClearingSharePerm
-          default: 0x1c841ed1bb4e7f8222eab3a08f24aadb3adc36f31d67c977e44d069ebc3105365638747a68f8c1949968d9cd5dfd212
+          default: 0x5bb39d122eb5483188e73ffcab0c770b27d584d617daca596d07242a668132e9742c5fb83c952f4d11e0b63a2b9de03d
           randwidth: 384
         }
         {
@@ -5338,7 +5337,7 @@
           randcount: 288
           randtype: data
           name_top: RndCnstAesMaskingLfsrSeed
-          default: 0x36270315f91066fb63a6e6eb54493c0631cd3062adf6d00b7e756f81353c10ac316a9c7a
+          default: 0xa0d95ce4ee55b032c07a29b920b7953e485f23ad102c6a0efce9f0ec4c712146a4ab60da
           randwidth: 288
         }
         {
@@ -5348,7 +5347,7 @@
           randcount: 160
           randtype: perm
           name_top: RndCnstAesMaskingLfsrPerm
-          default: 0x9107678e8f0118524a1a5a0e9f544d2a5e69054f5380264171333a0d5f0f7e1b57616a3911970b42566402308c832d6d9d84776c121c3b864b8b731f2e595c48452f3d51407b829b7c080c94278735755b28786595898d8a049368321606179c50253f24317a4e19235d7f72921096902c3e1e6636135815740a1d37476f216260467d44767970853899039a1420986b495522436e004c9e3c81098863292b34
+          default: 0x646b7344050d0c6101416f8a7568107e583e351a0f85628e495c3806999c76292757959188225470601d69481e71312c13439f6a4e84041c460a3498232567878c5f967286092d554a4d4b63325e53028f1b3a90214218802033503f79082f7a7b8139780b2815364c036d7d0716949366374f24405b1f302a0e92476c7f749a2b3d5d14567745008d2697522e1151125a3c1789833b9e59827c199b9d6e658b
           randwidth: 1280
         }
       ]
@@ -5623,7 +5622,7 @@
           randcount: 288
           randtype: data
           name_top: RndCnstKmacLfsrSeed
-          default: 0xfd7f6334613aa93b656444d70350a89ebc0cfbd0a03925fc80535f277451d2be0c46fdd2
+          default: 0x382af33b479718558e6759764645aad1fb21c18124635e3d50a88f6808045627ac18f377
           randwidth: 288
         }
         {
@@ -5633,7 +5632,7 @@
           randcount: 800
           randtype: perm
           name_top: RndCnstKmacLfsrPerm
-          default: 0x62a473f8e39c84bb85a51ae7857664535593e4516657f9ec35bd632631ef05d97c75c393841a787913690b8ac6bed552a47265714badc7b1ed1892fc96d1c0e13443ed20680d63a345d83317a5ec171f8d63da2ede924db3a11fc6c674293c8345955c2b96a797a6893b2cab542781a141921326dce02f0649af9700b98a5e6692fe4ccbf6e414086e9aea195e2f61d857c00759882f61173aa1de7444018291708a407a0cbb836aa8256da7a2416527d27252463420b51e817f0ee2b6700fd166ea85bfe081c587901e2841204e6712962256c49c405b328233f1350627db9463b162d879e1899d28fa3abca6a6e06dbaa2348b0f9205c5f2b343172c2c6e76d3833a3fc4e28615a06a954b73031c0dac649399dfd3e1d59fc24064f4150222d47b57ac22ca056c8b7762d6142f0590471e9a34ac84a5462529ada7c8e649cd2767e1fd9d79d58156b50c552ab5ae53089948d37fef8333179a1457adca42d1d399665589e0098d1b2cdb3eb9a6c865424236066998982aeda1bc61054070decb3eaddb7d2d60da23b43c1dda92085a04820b38fd17e36aed06422f4a6243a4ea403e99c25745ee386713692e806044c8961ab9aa79acae7523144ee4975ea3c8f10eb1573182af1249f30cb42b79840539046a8e1f5f5098443d1a9cf5c5c8c20299a4524b1fa906a171903bc47c5a5bf8a97722826abeb63cd5a710a1580a26256f4fd9489e03509af6a0b4336ae2a14e2c23c461236d4d44540a4f48c518af5f869b5095111e552d861144313f0786e8801a0940283a11dc35cc61f81f4ddcbac1677ee753aaef9b0aa9cd684960e17497266b26ef0d0ec32a34efafb019291297ded7e5f6b6065c392e53d5122011759b11d1a1a80036799322e0f38941139620c0538119a4c42a4a8c278d5c9bf115ae00765909731232df51f5df621285aac3411217ce879424c3ece09dca63551974c1c8840c316bf7a316646abaa4e19350d9b5bdbce9a004f6ac45670487259d7010a04a41ba5c1dba08357ee0af686202b4b3008a8a02a512f9ba8254c34a98096f91a4c1482f91434ac1862e7780d9a72305ba5439cf77ba16a491e994dc394ff5b65662c8da2944c78a7128cf21458791f1848c385df0b003e4425391091525bc0028c855796ae1dbf5d095e4f3c1b40e4d13ae45982d7954f558cc441cc08adec2ea1c26adbbb22c1e0b16b0104140e35ae366263439c9966a50b2013a6d9bdd3b4ea0a7d016945b731eed8ccb6305fe69ddd7e2fa600c92f62037d179d0acb4f025d70a4048fa3a395e9115b22e8ee7667df24c9b3120132ec42270812f02eab0737691b4f9f7375a66c207658923223737b041a0a3ae140b11c52e18f2cd430b71840b1cb259ba5b1a585709628fa762f0a2c8
+          default: 0x6c6518ba9e6496c2467b490691117ea9c32b50ec6ea3d2863650d4b2dadd0a95ec16c7c4d09306476a86481c677d1e2b2c5f6788dc5c40260b338459ac581882f64a1000515563264ade7f9eaf1341994b1b66407c2e666832907d97805aab2c6a570a4b1c9195e8ad8c89c221f9746e80b5e550025884e7265a1a552f8b6263b99593027034944547f72a413c60a840f0b3c0b918d1b910da91fc4af0b5f26fc0a298517128a8eb9b1202570821d349dedbb53aa3ee990123280d722cff0e4663cc752fd4d0aeef0e1c330cc60546c5be7d781bb41a3c3b5975f5cfc11c5061df4944e4c7075aa3a46af23e6a197c9e5d2c3c2256232e314a170480625588584d21e4f7210c532da0be04b849a74140aa29d814679460baa08200785779e4974a8c2ed6868dc6658e926caa04602370505ae43731b47403fb6c680fa6d6ac330b8c9404c853a27b70dd6c0817c6b562cbe2d59b8a86a871a6b6a34bde70268da1eae0674f6974341d8856706da4564601fd560db4828b4dce4894ef3ca00039e8180002be8129e2338b100c15644061972a6845bcb22684d2e5359d646d635ed9a3015dac11dc1a387c31bae5754fe426e6e2412de471cd860089acb73a04818a1b2b1d90be8459c65589770dc6b4d824626d29df03c61c899512298861c4fb64d4779a3e3f0e3a2628136f3106a3ae0faa0e99824b098ca423e96b004f889d5430d55a5ecc06ce229ee72c28b84139f80f7adaca615721cc45da01c00a36b69c3fabe965d48b319b9e6c6962f6c8925427332855438474894abc2bdbeaf9875118c52d80d60af09fab0d86bd5cb18e0c70d33092a6fed59f0581f9c74e480ae8ae00582b36af7864412aa82f0cc0c6ca1f6744ce1e0744976c5e6a1457270d63a0e07df70a5fab32c9294e6619796ce5ebfcdeab5e41ee7594090c7e353f6f542239b6293c46f475e5808496c76bb982855bb0937dfb7d61a5083552129aa69a82c034f04631d44815be4299424c1942d4c351ae4ecb2a00022a20fbbafd226619e1265989d5fcf8c39b56346e041f20f507afd0fb4e87892d7569510d8d99505c4f82660df8c2afb9170f645a4152d0938058fe4d87eea8aeb3525de7a53057db799ddd1d1ce8edf3c5007b7c5ac54cf0895ba803b06db868a865ce5716f0c2e29498b1e10a5a0f082616c1b11c476a4aad914564637bceb8102c85ab27a98f6f4cda766e4b9fe95692485547feb44f5c1948f478c788cc8e866a2b169f62903b0953818174c823a2146339983aaaa836155497245ce59207353cf5132691581a9d80c594a99a87725f16702304d6ae4e16d9c64fbf2130e941a36eb772d147e7220cb4a5ed9010bdc6a3745aec6101c14d1e4099fbf98744c4510da91c05d2aed696e53a6c6f
           randwidth: 8000
         }
         {
@@ -5643,7 +5642,7 @@
           randcount: 800
           randtype: data
           name_top: RndCnstKmacBufferLfsrSeed
-          default: 0x82c54e1481730f66854723d00560945b6c126ffec03bf1a985028fae5eca762b77b0aaa69486cff6100543fa654b771979a70dde33ff89cf0ed4d484bcbd6b2ae72e35145b5f97c0e9b65e98cea48c3df219340a563da5b6396fce53002a2961ac84bdda
+          default: 0x8eced8859f464d1d910540eec6ba0486f07cffaf7b8b9213bd8dc7b927797c09dfeaf1272b92abc409056cfa513aed0de2186c2b2a4874e4adaca4c6809e571b351756bf8d18e24be7e1c96737b726a4c6f04993b3e6aae70f22aaf748b57c320264e157
           randwidth: 800
         }
         {
@@ -5653,7 +5652,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstKmacMsgPerm
-          default: 0xc955307f8181637fe30d17bc5fd019b8bd6076649bd903930a1256207cccfaf2aae4da6d6ac9e47223f1ebb968d2b144
+          default: 0x52dd59f560e06b6fa776c08970b3a9fcd8b996f7faafb8744c58c7deef28991ca47b01b33d022a5570446d8300292c78
           randwidth: 384
         }
       ]
@@ -5847,7 +5846,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstOtbnUrndPrngSeed
-          default: 0xa575b899b4caae056cf2b85353e1a33975e7b1209b868a4acd919ed9795d5f51
+          default: 0x600d2a41bc465efe57aa3b59bd6b0a40216363420f041ed29a965b68faea3e59
           randwidth: 256
         }
         {
@@ -5885,7 +5884,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstOtbnOtbnKey
-          default: 0x9aa8cd47ac68b65650a1bb5a4a6dbf0b
+          default: 0xd4f2e2a0b42eb9a8c3ab227b50766d2e
           randwidth: 128
         }
         {
@@ -5895,7 +5894,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstOtbnOtbnNonce
-          default: 0xc7c1c7af8402bacd
+          default: 0xaec89eb13b07e9bf
           randwidth: 64
         }
       ]
@@ -6129,7 +6128,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstKeymgrDpeLfsrSeed
-          default: 0x250ed8960c88b4b1
+          default: 0x4ee42784136d42c8
           randwidth: 64
         }
         {
@@ -6139,7 +6138,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstKeymgrDpeLfsrPerm
-          default: 0xa3fb9af729349f5d820605b362d23a1ac4993dcdd3e0e35de4510af171c08cc5150e2271c0bee942f6fe966ad17a1a9f
+          default: 0x73a93266a6b6e1fb1dce0b54c02f3e0063eb8bd5858f5418a040791c3c694cd48c9ca20bde5eef7a6ba157fd0939b457
           randwidth: 384
         }
         {
@@ -6149,7 +6148,7 @@
           randcount: 32
           randtype: perm
           name_top: RndCnstKeymgrDpeRandPerm
-          default: 0x6f92165b3355778fdd0678f9470ba75c8b08809a
+          default: 0x474d410ed8502fbd47e50a56c6e64724e0fe3bd5
           randwidth: 160
         }
         {
@@ -6159,7 +6158,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeRevisionSeed
-          default: 0xb6ee6e7ad485ff3ca72c2242223ce6d70f17b4f4b32818aa49d125b4defb1f3c
+          default: 0xf90ef5e2b74beee27cfa19ea576ca8a8225c8e17053e44b68dd7822a6859f2cf
           randwidth: 256
         }
         {
@@ -6169,7 +6168,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeSoftOutputSeed
-          default: 0xbe8a29be065c26d23550bbc139ff6461763d7e966a8a7219eb2e8ef9f11a152
+          default: 0x52a55fd181b082d03c583756f11aa5b37f9544c4aa90eb97e1c0f8086f627a28
           randwidth: 256
         }
         {
@@ -6179,7 +6178,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeHardOutputSeed
-          default: 0xe6c71aa23b8864416e750c01a3339c6c7aa11244ecd28a62cb1b851078c2a5f1
+          default: 0x1c5681d6566641eecccc88876ad113c50ad1be4d94dce8fca54128a3860ae1d3
           randwidth: 256
         }
         {
@@ -6189,7 +6188,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeAesSeed
-          default: 0x8eee28d0b562043b7312efad871f92e7527da865d661281fe98dfcd72e3c6d15
+          default: 0x493fbef6b9ba5dfe4463a4615ef46762a794a8c2597e69fb259b961914cd75bb
           randwidth: 256
         }
         {
@@ -6199,7 +6198,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeKmacSeed
-          default: 0xa85d63009596f7966c5c68caedde4ab7c65fb8d59618284064d7194e4707ada
+          default: 0xfd36ba48e780d27cd582540c7a68ff254edfd852829fecccabd4af9c9032da20
           randwidth: 256
         }
         {
@@ -6209,7 +6208,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeOtbnSeed
-          default: 0x81f8a6db14ca845beee60798289ad4fb0df1768296390152700e078ec5a951b6
+          default: 0xbdaf59fe2ae209b8325d2c8c35fc960679b106a87e59e6aeb1b5302d33401070
           randwidth: 256
         }
         {
@@ -6219,7 +6218,7 @@
           randcount: 256
           randtype: data
           name_top: RndCnstKeymgrDpeNoneSeed
-          default: 0x27cf2ccd155d84fdaced736e93362c8da83c5f4dd2093e4d2a70dd99dcf4ccac
+          default: 0x251696fbb4ba169a6cd82fad46a0a5c04009bb934c7ef7b83b6e40610b4309fc
           randwidth: 256
         }
       ]
@@ -6423,7 +6422,7 @@
           randcount: 384
           randtype: data
           name_top: RndCnstCsrngCsKeymgrDivNonProduction
-          default: 0x341a2f1a2704f5e21287fa168af251b370d034cda605152662f4d11b3245d5943ea5fd2e4bea016b7911deaf01df7425
+          default: 0xb9dc54d4276137f9901d09a76aeaa19de5c579fd38bdf38f0c21d6a52226b6a4a7bdb05fe921615bf2ff984540f7d43e
           randwidth: 384
         }
         {
@@ -6433,7 +6432,7 @@
           randcount: 384
           randtype: data
           name_top: RndCnstCsrngCsKeymgrDivProduction
-          default: 0x47371445d6e3955145e3074d9ca9e8a4ef06a6f14a5c8fcac0d6396e606a620a9ffb23756bda420a9e7bd1a7c41e3a37
+          default: 0xce76b4eb13363774ed2ed45545e927f6d9e4abac398d42c745eef646c1464dca86dafd7c7c71e6058ddfd871c51cacba
           randwidth: 384
         }
         {
@@ -7139,7 +7138,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlMainSramKey
-          default: 0xb747d3d7b758b37d1d1ca19a079c48d7
+          default: 0xf4410f06dcc036fcd16fcde97d171891
           randwidth: 128
         }
         {
@@ -7149,7 +7148,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlMainSramNonce
-          default: 0xd4e67100a6aaebe45b6f09aefb72895e
+          default: 0x105dd895e3a1d0a19a16d6dbd8b20fc9
           randwidth: 128
         }
         {
@@ -7159,7 +7158,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstSramCtrlMainLfsrSeed
-          default: 0xc90d876315db9ad8
+          default: 0xe662e1e1b4982b3e
           randwidth: 64
         }
         {
@@ -7169,7 +7168,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstSramCtrlMainLfsrPerm
-          default: 0xd58134893911fa70a6380e0b53a19676dfdf5db42966a81a0c857c16572c376052c077afecadf1f61ae88c9333c8fe6e
+          default: 0x5700cef8725c61b0b488d107bc24e8073feab3dad64de462bd12e53f9f75450a6cb0a1d47a4d67e96b56e4aef0e2623
           randwidth: 384
         }
         {
@@ -7466,7 +7465,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlMboxSramKey
-          default: 0xc9adde7bfb79fb9cc4c0b2d1aed6700a
+          default: 0xaa516c144b34c96dfabb6f6e79208a74
           randwidth: 128
         }
         {
@@ -7476,7 +7475,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstSramCtrlMboxSramNonce
-          default: 0x44ea3e7e0610a663d52b082b9aef0e42
+          default: 0xf35c79f397c4e4c7e22b7581848a90a1
           randwidth: 128
         }
         {
@@ -7486,7 +7485,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstSramCtrlMboxLfsrSeed
-          default: 0x6df4866fe88a8baa
+          default: 0x254b2276bec9fc1a
           randwidth: 64
         }
         {
@@ -7496,7 +7495,7 @@
           randcount: 64
           randtype: perm
           name_top: RndCnstSramCtrlMboxLfsrPerm
-          default: 0x313255020282c197b789fb87992c785a8ea335a9c81b3474bdc76b921daa054cbd103f186e542cecfb75e6917e5cbfce
+          default: 0x638051f4a7e18333acd09fc7ea96b70eb6d4c35002be3e65a2740b77e91c17bd8fb578843591969b1312b93cbca8855e
           randwidth: 384
         }
         {
@@ -7769,6 +7768,7 @@
       param_decl:
       {
         SecDisableScrambling: 1'b0
+        FlopToKmac: 1'b1
       }
       clock_connections:
       {
@@ -7786,13 +7786,27 @@
           name_top: RomCtrl0BootRomInitFile
         }
         {
+          name: FlopToKmac
+          desc:
+            '''
+            Add a flop stage between the output of the ROM and the data that gets
+            sent to KMAC. This may break long paths in a target chip, at the cost of
+            adding chip area.
+            '''
+          type: bit
+          default: 1'b1
+          local: "true"
+          expose: "true"
+          name_top: RomCtrl0FlopToKmac
+        }
+        {
           name: RndCnstScrNonce
           desc: Fixed nonce used for address / data scrambling
           type: bit [63:0]
           randcount: 64
           randtype: data
           name_top: RndCnstRomCtrl0ScrNonce
-          default: 0x37bebb1d8879e257
+          default: 0xdc260a79998eff5c
           randwidth: 64
         }
         {
@@ -7802,7 +7816,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstRomCtrl0ScrKey
-          default: 0x23b9d533238865874ef2d375583c209c
+          default: 0x710b67838adfb99a5eca671672cf19bc
           randwidth: 128
         }
         {
@@ -7955,6 +7969,7 @@
       param_decl:
       {
         SecDisableScrambling: 1'b0
+        FlopToKmac: 1'b1
       }
       clock_connections:
       {
@@ -7972,13 +7987,27 @@
           name_top: RomCtrl1BootRomInitFile
         }
         {
+          name: FlopToKmac
+          desc:
+            '''
+            Add a flop stage between the output of the ROM and the data that gets
+            sent to KMAC. This may break long paths in a target chip, at the cost of
+            adding chip area.
+            '''
+          type: bit
+          default: 1'b1
+          local: "true"
+          expose: "true"
+          name_top: RomCtrl1FlopToKmac
+        }
+        {
           name: RndCnstScrNonce
           desc: Fixed nonce used for address / data scrambling
           type: bit [63:0]
           randcount: 64
           randtype: data
           name_top: RndCnstRomCtrl1ScrNonce
-          default: 0x27d35c5794f680b
+          default: 0xa6adc1ebfab611f1
           randwidth: 64
         }
         {
@@ -7988,7 +8017,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstRomCtrl1ScrKey
-          default: 0x124893c22e6a22f5ad2e7591ecad6cca
+          default: 0x9e7262e0a491970e51b28e7026d0e5dc
           randwidth: 128
         }
         {
@@ -8151,13 +8180,13 @@
           name_top: DmaTlUserRsvd
         }
         {
-          name: SysRacl
-          desc: Value of `racl_vec` field in `sys` output
-          type: logic [dma_pkg::SYS_RACL_WIDTH-1:0]
+          name: SysRaclRole
+          desc: RACL propagated on the Sys interface via `racl_vec`
+          type: top_racl_pkg::racl_role_t
           default: "'0"
           local: "false"
           expose: "true"
-          name_top: DmaSysRacl
+          name_top: DmaSysRaclRole
         }
         {
           name: OtAgentId
@@ -8187,6 +8216,7 @@
         }
         {
           name: sys
+          desc: SoC System Bus (requests and responses), synchronous
           struct: sys
           package: dma_pkg
           type: req_rsp
@@ -10497,7 +10527,7 @@
           domain: "0"
         }
       }
-      ipgen_param:
+      ipgen_params:
       {
         num_ranges: 32
       }
@@ -10840,9 +10870,9 @@
       type: rv_core_ibex
       template_type: rv_core_ibex
       attr: ipgen
-      ipgen_param:
+      ipgen_params:
       {
-        NumRegions: 32
+        num_regions: 32
       }
       param_decl:
       {
@@ -10872,6 +10902,7 @@
         DmHaltAddr: tl_main_pkg::ADDR_SPACE_RV_DM__MEM + dm::HaltAddress[31:0]
         DmExceptionAddr: tl_main_pkg::ADDR_SPACE_RV_DM__MEM + dm::ExceptionAddress[31:0]
         PipeLine: "1"
+        InstructionPipeline: "1"
         NEscalationSeverities: AlertHandlerEscNumSeverities
         WidthPingCounter: AlertHandlerEscPingCountWidth
       }
@@ -10931,7 +10962,7 @@
           randcount: 32
           randtype: data
           name_top: RndCnstRvCoreIbexLfsrSeed
-          default: 0x220de3c0
+          default: 0xe9e265a4
           randwidth: 32
         }
         {
@@ -10941,7 +10972,7 @@
           randcount: 32
           randtype: perm
           name_top: RndCnstRvCoreIbexLfsrPerm
-          default: 0x3d1a8b4f92ee1c92c5f55ab77f30c2fe74124060
+          default: 0x32b4fa623c5a2f6914e90832d6767bf41c327ea2
           randwidth: 160
         }
         {
@@ -10951,7 +10982,7 @@
           randcount: 128
           randtype: data
           name_top: RndCnstRvCoreIbexIbexKeyDefault
-          default: 0xf2546ea845a7ade1002b84b739380023
+          default: 0xffaff9760f5e838bd8e2413ab956b10
           randwidth: 128
         }
         {
@@ -10961,7 +10992,7 @@
           randcount: 64
           randtype: data
           name_top: RndCnstRvCoreIbexIbexNonceDefault
-          default: 0xc25c3deaf38d871a
+          default: 0x6ca7139a07effee4
           randwidth: 64
         }
         {
@@ -11263,6 +11294,15 @@
           local: "false"
           expose: "true"
           name_top: RvCoreIbexCsrMimpId
+        }
+        {
+          name: InstructionPipeline
+          desc: Add a pipeline stage in the instruction interface between Ibex and the address translation
+          type: bit
+          default: "1"
+          local: "true"
+          expose: "true"
+          name_top: RvCoreIbexInstructionPipeline
         }
       ]
       inter_signal_list:
@@ -11857,6 +11897,7 @@
         ast.lc_dft_en
         pwrmgr_aon.lc_dft_en
         soc_dbg_ctrl.lc_dft_en
+        rv_dm.lc_dft_en
       ]
       lc_ctrl.lc_hw_debug_clr:
       [
@@ -18314,6 +18355,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: uart0
       desc: uart0 fatal_fault alert
       lpg_name: peri_lc_io_div4_0
@@ -18324,6 +18366,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: gpio
       desc: gpio fatal_fault alert
       lpg_name: peri_lc_io_div4_0
@@ -18334,6 +18377,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: spi_device
       desc: spi_device fatal_fault alert
       lpg_name: peri_spi_device_0
@@ -18344,6 +18388,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: i2c0
       desc: i2c0 fatal_fault alert
       lpg_name: peri_i2c0_0
@@ -18354,6 +18399,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_timer
       desc: rv_timer fatal_fault alert
       lpg_name: timers_lc_io_div4_0
@@ -18364,6 +18410,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otp_ctrl
       desc: otp_ctrl fatal_macro_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18374,6 +18421,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otp_ctrl
       desc: otp_ctrl fatal_check_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18384,6 +18432,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otp_ctrl
       desc: otp_ctrl fatal_bus_integ_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18394,6 +18443,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otp_ctrl
       desc: otp_ctrl fatal_prim_otp_alert alert
       lpg_name: secure_lc_io_div4_0
@@ -18404,6 +18454,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otp_ctrl
       desc: otp_ctrl recov_prim_otp_alert alert
       lpg_name: secure_lc_io_div4_0
@@ -18414,6 +18465,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: lc_ctrl
       desc: lc_ctrl fatal_prog_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18424,6 +18476,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: lc_ctrl
       desc: lc_ctrl fatal_state_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18434,6 +18487,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: lc_ctrl
       desc: lc_ctrl fatal_bus_integ_error alert
       lpg_name: secure_lc_io_div4_0
@@ -18444,6 +18498,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: spi_host0
       desc: spi_host0 fatal_fault alert
       lpg_name: peri_spi_host0_0
@@ -18454,6 +18509,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: pwrmgr_aon
       desc: pwrmgr_aon fatal_fault alert
       lpg_name: powerup_por_io_div4_Aon
@@ -18464,6 +18520,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rstmgr_aon
       desc: rstmgr_aon fatal_fault alert
       lpg_name: powerup_lc_io_div4_Aon
@@ -18474,6 +18531,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rstmgr_aon
       desc: rstmgr_aon fatal_cnsty_fault alert
       lpg_name: powerup_lc_io_div4_Aon
@@ -18484,6 +18542,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: clkmgr_aon
       desc: clkmgr_aon recov_fault alert
       lpg_name: powerup_lc_io_div4_Aon
@@ -18494,6 +18553,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: clkmgr_aon
       desc: clkmgr_aon fatal_fault alert
       lpg_name: powerup_lc_io_div4_Aon
@@ -18504,6 +18564,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: pinmux_aon
       desc: pinmux_aon fatal_fault alert
       lpg_name: powerup_lc_io_div4_Aon
@@ -18514,6 +18575,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: aon_timer_aon
       desc: aon_timer_aon fatal_fault alert
       lpg_name: timers_lc_io_div4_Aon
@@ -18524,6 +18586,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_intg alert
       lpg_name: infra_lc_0
@@ -18534,6 +18597,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_0 alert
       lpg_name: infra_lc_0
@@ -18544,6 +18608,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_1 alert
       lpg_name: infra_lc_0
@@ -18554,6 +18619,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_2 alert
       lpg_name: infra_lc_0
@@ -18564,6 +18630,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_3 alert
       lpg_name: infra_lc_0
@@ -18574,6 +18641,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_4 alert
       lpg_name: infra_lc_0
@@ -18584,6 +18652,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_5 alert
       lpg_name: infra_lc_0
@@ -18594,6 +18663,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_6 alert
       lpg_name: infra_lc_0
@@ -18604,6 +18674,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_7 alert
       lpg_name: infra_lc_0
@@ -18614,6 +18685,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_8 alert
       lpg_name: infra_lc_0
@@ -18624,6 +18696,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_9 alert
       lpg_name: infra_lc_0
@@ -18634,6 +18707,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_10 alert
       lpg_name: infra_lc_0
@@ -18644,6 +18718,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_11 alert
       lpg_name: infra_lc_0
@@ -18654,6 +18729,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_12 alert
       lpg_name: infra_lc_0
@@ -18664,6 +18740,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_13 alert
       lpg_name: infra_lc_0
@@ -18674,6 +18751,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_14 alert
       lpg_name: infra_lc_0
@@ -18684,6 +18762,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_15 alert
       lpg_name: infra_lc_0
@@ -18694,6 +18773,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_16 alert
       lpg_name: infra_lc_0
@@ -18704,6 +18784,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_17 alert
       lpg_name: infra_lc_0
@@ -18714,6 +18795,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_18 alert
       lpg_name: infra_lc_0
@@ -18724,6 +18806,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_19 alert
       lpg_name: infra_lc_0
@@ -18734,6 +18817,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_20 alert
       lpg_name: infra_lc_0
@@ -18744,6 +18828,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_21 alert
       lpg_name: infra_lc_0
@@ -18754,6 +18839,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_22 alert
       lpg_name: infra_lc_0
@@ -18764,6 +18850,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy fatal_alert_external_23 alert
       lpg_name: infra_lc_0
@@ -18774,6 +18861,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy recov_alert_external_0 alert
       lpg_name: infra_lc_0
@@ -18784,6 +18872,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy recov_alert_external_1 alert
       lpg_name: infra_lc_0
@@ -18794,6 +18883,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy recov_alert_external_2 alert
       lpg_name: infra_lc_0
@@ -18804,6 +18894,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_proxy
       desc: soc_proxy recov_alert_external_3 alert
       lpg_name: infra_lc_0
@@ -18814,6 +18905,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: sram_ctrl_ret_aon
       desc: sram_ctrl_ret_aon fatal_error alert
       lpg_name: infra_lc_io_div4_Aon
@@ -18824,6 +18916,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_dm
       desc: rv_dm fatal_fault alert
       lpg_name: infra_sys_0
@@ -18834,6 +18927,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_plic
       desc: rv_plic fatal_fault alert
       lpg_name: secure_lc_0
@@ -18844,6 +18938,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: aes
       desc: aes recov_ctrl_update_err alert
       lpg_name: aes_trans_lc_0
@@ -18854,6 +18949,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: aes
       desc: aes fatal_fault alert
       lpg_name: aes_trans_lc_0
@@ -18864,6 +18960,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: hmac
       desc: hmac fatal_fault alert
       lpg_name: hmac_trans_lc_0
@@ -18874,6 +18971,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: kmac
       desc: kmac recov_operation_err alert
       lpg_name: kmac_trans_lc_0
@@ -18884,6 +18982,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: kmac
       desc: kmac fatal_fault_err alert
       lpg_name: kmac_trans_lc_0
@@ -18894,6 +18993,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otbn
       desc: otbn fatal alert
       lpg_name: otbn_trans_lc_0
@@ -18904,6 +19004,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: otbn
       desc: otbn recov alert
       lpg_name: otbn_trans_lc_0
@@ -18914,6 +19015,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: keymgr_dpe
       desc: keymgr_dpe recov_operation_err alert
       lpg_name: secure_lc_0
@@ -18924,6 +19026,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: keymgr_dpe
       desc: keymgr_dpe fatal_fault_err alert
       lpg_name: secure_lc_0
@@ -18934,6 +19037,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: csrng
       desc: csrng recov_alert alert
       lpg_name: secure_lc_0
@@ -18944,6 +19048,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: csrng
       desc: csrng fatal_alert alert
       lpg_name: secure_lc_0
@@ -18954,6 +19059,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: entropy_src
       desc: entropy_src recov_alert alert
       lpg_name: secure_lc_0
@@ -18964,6 +19070,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: entropy_src
       desc: entropy_src fatal_alert alert
       lpg_name: secure_lc_0
@@ -18974,6 +19081,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: edn0
       desc: edn0 recov_alert alert
       lpg_name: secure_lc_0
@@ -18984,6 +19092,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: edn0
       desc: edn0 fatal_alert alert
       lpg_name: secure_lc_0
@@ -18994,6 +19103,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: edn1
       desc: edn1 recov_alert alert
       lpg_name: secure_lc_0
@@ -19004,6 +19114,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: edn1
       desc: edn1 fatal_alert alert
       lpg_name: secure_lc_0
@@ -19014,6 +19125,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: sram_ctrl_main
       desc: sram_ctrl_main fatal_error alert
       lpg_name: infra_lc_0
@@ -19024,6 +19136,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: sram_ctrl_mbox
       desc: sram_ctrl_mbox fatal_error alert
       lpg_name: infra_lc_0
@@ -19034,6 +19147,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rom_ctrl0
       desc: rom_ctrl0 fatal alert
       lpg_name: infra_lc_0
@@ -19044,6 +19158,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rom_ctrl1
       desc: rom_ctrl1 fatal alert
       lpg_name: infra_lc_0
@@ -19054,6 +19169,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: dma
       desc: dma fatal_fault alert
       lpg_name: infra_lc_0
@@ -19064,6 +19180,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx0
       desc: mbx0 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19074,6 +19191,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx0
       desc: mbx0 recov_fault alert
       lpg_name: infra_lc_0
@@ -19084,6 +19202,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx1
       desc: mbx1 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19094,6 +19213,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx1
       desc: mbx1 recov_fault alert
       lpg_name: infra_lc_0
@@ -19104,6 +19224,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx2
       desc: mbx2 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19114,6 +19235,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx2
       desc: mbx2 recov_fault alert
       lpg_name: infra_lc_0
@@ -19124,6 +19246,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx3
       desc: mbx3 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19134,6 +19257,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx3
       desc: mbx3 recov_fault alert
       lpg_name: infra_lc_0
@@ -19144,6 +19268,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx4
       desc: mbx4 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19154,6 +19279,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx4
       desc: mbx4 recov_fault alert
       lpg_name: infra_lc_0
@@ -19164,6 +19290,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx5
       desc: mbx5 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19174,6 +19301,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx5
       desc: mbx5 recov_fault alert
       lpg_name: infra_lc_0
@@ -19184,6 +19312,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx6
       desc: mbx6 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19194,6 +19323,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx6
       desc: mbx6 recov_fault alert
       lpg_name: infra_lc_0
@@ -19204,6 +19334,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_jtag
       desc: mbx_jtag fatal_fault alert
       lpg_name: infra_lc_0
@@ -19214,6 +19345,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_jtag
       desc: mbx_jtag recov_fault alert
       lpg_name: infra_lc_0
@@ -19224,6 +19356,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_pcie0
       desc: mbx_pcie0 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19234,6 +19367,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_pcie0
       desc: mbx_pcie0 recov_fault alert
       lpg_name: infra_lc_0
@@ -19244,6 +19378,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_pcie1
       desc: mbx_pcie1 fatal_fault alert
       lpg_name: infra_lc_0
@@ -19254,6 +19389,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: mbx_pcie1
       desc: mbx_pcie1 recov_fault alert
       lpg_name: infra_lc_0
@@ -19264,6 +19400,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_dbg_ctrl
       desc: soc_dbg_ctrl fatal_fault alert
       lpg_name: secure_lc_io_div4_0
@@ -19274,6 +19411,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: soc_dbg_ctrl
       desc: soc_dbg_ctrl recov_ctrl_update_err alert
       lpg_name: secure_lc_io_div4_0
@@ -19284,6 +19422,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: racl_ctrl
       desc: racl_ctrl fatal_fault alert
       lpg_name: infra_lc_0
@@ -19294,6 +19433,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: racl_ctrl
       desc: racl_ctrl recov_ctrl_update_err alert
       lpg_name: infra_lc_0
@@ -19304,6 +19444,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: ac_range_check
       desc: ac_range_check recov_ctrl_update_err alert
       lpg_name: secure_lc_0
@@ -19314,6 +19455,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: ac_range_check
       desc: ac_range_check fatal_fault alert
       lpg_name: secure_lc_0
@@ -19324,6 +19466,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_core_ibex
       desc: rv_core_ibex fatal_sw_err alert
       lpg_name: infra_lc_0
@@ -19334,6 +19477,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_core_ibex
       desc: rv_core_ibex recov_sw_err alert
       lpg_name: infra_lc_0
@@ -19344,6 +19488,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_core_ibex
       desc: rv_core_ibex fatal_hw_err alert
       lpg_name: infra_lc_0
@@ -19354,6 +19499,7 @@
       width: 1
       type: alert
       async: "1"
+      handler: alert_handler
       module_name: rv_core_ibex
       desc: rv_core_ibex recov_hw_err alert
       lpg_name: infra_lc_0
@@ -20625,6 +20771,519 @@
     ac_range_check
     rv_core_ibex
   ]
+  alert_connections:
+  {
+    module_uart0:
+    {
+      tx_expr: alert_tx[0:0]
+      rx_expr: alert_rx[0:0]
+      async_expr: alert_handler_reg_pkg::AsyncOn[0:0]
+      comments:
+      [
+        alert_handler[0]: fatal_fault
+      ]
+    }
+    module_gpio:
+    {
+      tx_expr: alert_tx[1:1]
+      rx_expr: alert_rx[1:1]
+      async_expr: alert_handler_reg_pkg::AsyncOn[1:1]
+      comments:
+      [
+        alert_handler[1]: fatal_fault
+      ]
+    }
+    module_spi_device:
+    {
+      tx_expr: alert_tx[2:2]
+      rx_expr: alert_rx[2:2]
+      async_expr: alert_handler_reg_pkg::AsyncOn[2:2]
+      comments:
+      [
+        alert_handler[2]: fatal_fault
+      ]
+    }
+    module_i2c0:
+    {
+      tx_expr: alert_tx[3:3]
+      rx_expr: alert_rx[3:3]
+      async_expr: alert_handler_reg_pkg::AsyncOn[3:3]
+      comments:
+      [
+        alert_handler[3]: fatal_fault
+      ]
+    }
+    module_rv_timer:
+    {
+      tx_expr: alert_tx[4:4]
+      rx_expr: alert_rx[4:4]
+      async_expr: alert_handler_reg_pkg::AsyncOn[4:4]
+      comments:
+      [
+        alert_handler[4]: fatal_fault
+      ]
+    }
+    module_otp_ctrl:
+    {
+      tx_expr: alert_tx[9:5]
+      rx_expr: alert_rx[9:5]
+      async_expr: alert_handler_reg_pkg::AsyncOn[9:5]
+      comments:
+      [
+        alert_handler[5]: fatal_macro_error
+        alert_handler[6]: fatal_check_error
+        alert_handler[7]: fatal_bus_integ_error
+        alert_handler[8]: fatal_prim_otp_alert
+        alert_handler[9]: recov_prim_otp_alert
+      ]
+    }
+    module_lc_ctrl:
+    {
+      tx_expr: alert_tx[12:10]
+      rx_expr: alert_rx[12:10]
+      async_expr: alert_handler_reg_pkg::AsyncOn[12:10]
+      comments:
+      [
+        alert_handler[10]: fatal_prog_error
+        alert_handler[11]: fatal_state_error
+        alert_handler[12]: fatal_bus_integ_error
+      ]
+    }
+    module_spi_host0:
+    {
+      tx_expr: alert_tx[13:13]
+      rx_expr: alert_rx[13:13]
+      async_expr: alert_handler_reg_pkg::AsyncOn[13:13]
+      comments:
+      [
+        alert_handler[13]: fatal_fault
+      ]
+    }
+    module_pwrmgr_aon:
+    {
+      tx_expr: alert_tx[14:14]
+      rx_expr: alert_rx[14:14]
+      async_expr: alert_handler_reg_pkg::AsyncOn[14:14]
+      comments:
+      [
+        alert_handler[14]: fatal_fault
+      ]
+    }
+    module_rstmgr_aon:
+    {
+      tx_expr: alert_tx[16:15]
+      rx_expr: alert_rx[16:15]
+      async_expr: alert_handler_reg_pkg::AsyncOn[16:15]
+      comments:
+      [
+        alert_handler[15]: fatal_fault
+        alert_handler[16]: fatal_cnsty_fault
+      ]
+    }
+    module_clkmgr_aon:
+    {
+      tx_expr: alert_tx[18:17]
+      rx_expr: alert_rx[18:17]
+      async_expr: alert_handler_reg_pkg::AsyncOn[18:17]
+      comments:
+      [
+        alert_handler[17]: recov_fault
+        alert_handler[18]: fatal_fault
+      ]
+    }
+    module_pinmux_aon:
+    {
+      tx_expr: alert_tx[19:19]
+      rx_expr: alert_rx[19:19]
+      async_expr: alert_handler_reg_pkg::AsyncOn[19:19]
+      comments:
+      [
+        alert_handler[19]: fatal_fault
+      ]
+    }
+    module_aon_timer_aon:
+    {
+      tx_expr: alert_tx[20:20]
+      rx_expr: alert_rx[20:20]
+      async_expr: alert_handler_reg_pkg::AsyncOn[20:20]
+      comments:
+      [
+        alert_handler[20]: fatal_fault
+      ]
+    }
+    module_soc_proxy:
+    {
+      tx_expr: alert_tx[49:21]
+      rx_expr: alert_rx[49:21]
+      async_expr: alert_handler_reg_pkg::AsyncOn[49:21]
+      comments:
+      [
+        alert_handler[21]: fatal_alert_intg
+        alert_handler[22]: fatal_alert_external_0
+        alert_handler[23]: fatal_alert_external_1
+        alert_handler[24]: fatal_alert_external_2
+        alert_handler[25]: fatal_alert_external_3
+        alert_handler[26]: fatal_alert_external_4
+        alert_handler[27]: fatal_alert_external_5
+        alert_handler[28]: fatal_alert_external_6
+        alert_handler[29]: fatal_alert_external_7
+        alert_handler[30]: fatal_alert_external_8
+        alert_handler[31]: fatal_alert_external_9
+        alert_handler[32]: fatal_alert_external_10
+        alert_handler[33]: fatal_alert_external_11
+        alert_handler[34]: fatal_alert_external_12
+        alert_handler[35]: fatal_alert_external_13
+        alert_handler[36]: fatal_alert_external_14
+        alert_handler[37]: fatal_alert_external_15
+        alert_handler[38]: fatal_alert_external_16
+        alert_handler[39]: fatal_alert_external_17
+        alert_handler[40]: fatal_alert_external_18
+        alert_handler[41]: fatal_alert_external_19
+        alert_handler[42]: fatal_alert_external_20
+        alert_handler[43]: fatal_alert_external_21
+        alert_handler[44]: fatal_alert_external_22
+        alert_handler[45]: fatal_alert_external_23
+        alert_handler[46]: recov_alert_external_0
+        alert_handler[47]: recov_alert_external_1
+        alert_handler[48]: recov_alert_external_2
+        alert_handler[49]: recov_alert_external_3
+      ]
+    }
+    module_sram_ctrl_ret_aon:
+    {
+      tx_expr: alert_tx[50:50]
+      rx_expr: alert_rx[50:50]
+      async_expr: alert_handler_reg_pkg::AsyncOn[50:50]
+      comments:
+      [
+        alert_handler[50]: fatal_error
+      ]
+    }
+    module_rv_dm:
+    {
+      tx_expr: alert_tx[51:51]
+      rx_expr: alert_rx[51:51]
+      async_expr: alert_handler_reg_pkg::AsyncOn[51:51]
+      comments:
+      [
+        alert_handler[51]: fatal_fault
+      ]
+    }
+    module_rv_plic:
+    {
+      tx_expr: alert_tx[52:52]
+      rx_expr: alert_rx[52:52]
+      async_expr: alert_handler_reg_pkg::AsyncOn[52:52]
+      comments:
+      [
+        alert_handler[52]: fatal_fault
+      ]
+    }
+    module_aes:
+    {
+      tx_expr: alert_tx[54:53]
+      rx_expr: alert_rx[54:53]
+      async_expr: alert_handler_reg_pkg::AsyncOn[54:53]
+      comments:
+      [
+        alert_handler[53]: recov_ctrl_update_err
+        alert_handler[54]: fatal_fault
+      ]
+    }
+    module_hmac:
+    {
+      tx_expr: alert_tx[55:55]
+      rx_expr: alert_rx[55:55]
+      async_expr: alert_handler_reg_pkg::AsyncOn[55:55]
+      comments:
+      [
+        alert_handler[55]: fatal_fault
+      ]
+    }
+    module_kmac:
+    {
+      tx_expr: alert_tx[57:56]
+      rx_expr: alert_rx[57:56]
+      async_expr: alert_handler_reg_pkg::AsyncOn[57:56]
+      comments:
+      [
+        alert_handler[56]: recov_operation_err
+        alert_handler[57]: fatal_fault_err
+      ]
+    }
+    module_otbn:
+    {
+      tx_expr: alert_tx[59:58]
+      rx_expr: alert_rx[59:58]
+      async_expr: alert_handler_reg_pkg::AsyncOn[59:58]
+      comments:
+      [
+        alert_handler[58]: fatal
+        alert_handler[59]: recov
+      ]
+    }
+    module_keymgr_dpe:
+    {
+      tx_expr: alert_tx[61:60]
+      rx_expr: alert_rx[61:60]
+      async_expr: alert_handler_reg_pkg::AsyncOn[61:60]
+      comments:
+      [
+        alert_handler[60]: recov_operation_err
+        alert_handler[61]: fatal_fault_err
+      ]
+    }
+    module_csrng:
+    {
+      tx_expr: alert_tx[63:62]
+      rx_expr: alert_rx[63:62]
+      async_expr: alert_handler_reg_pkg::AsyncOn[63:62]
+      comments:
+      [
+        alert_handler[62]: recov_alert
+        alert_handler[63]: fatal_alert
+      ]
+    }
+    module_entropy_src:
+    {
+      tx_expr: alert_tx[65:64]
+      rx_expr: alert_rx[65:64]
+      async_expr: alert_handler_reg_pkg::AsyncOn[65:64]
+      comments:
+      [
+        alert_handler[64]: recov_alert
+        alert_handler[65]: fatal_alert
+      ]
+    }
+    module_edn0:
+    {
+      tx_expr: alert_tx[67:66]
+      rx_expr: alert_rx[67:66]
+      async_expr: alert_handler_reg_pkg::AsyncOn[67:66]
+      comments:
+      [
+        alert_handler[66]: recov_alert
+        alert_handler[67]: fatal_alert
+      ]
+    }
+    module_edn1:
+    {
+      tx_expr: alert_tx[69:68]
+      rx_expr: alert_rx[69:68]
+      async_expr: alert_handler_reg_pkg::AsyncOn[69:68]
+      comments:
+      [
+        alert_handler[68]: recov_alert
+        alert_handler[69]: fatal_alert
+      ]
+    }
+    module_sram_ctrl_main:
+    {
+      tx_expr: alert_tx[70:70]
+      rx_expr: alert_rx[70:70]
+      async_expr: alert_handler_reg_pkg::AsyncOn[70:70]
+      comments:
+      [
+        alert_handler[70]: fatal_error
+      ]
+    }
+    module_sram_ctrl_mbox:
+    {
+      tx_expr: alert_tx[71:71]
+      rx_expr: alert_rx[71:71]
+      async_expr: alert_handler_reg_pkg::AsyncOn[71:71]
+      comments:
+      [
+        alert_handler[71]: fatal_error
+      ]
+    }
+    module_rom_ctrl0:
+    {
+      tx_expr: alert_tx[72:72]
+      rx_expr: alert_rx[72:72]
+      async_expr: alert_handler_reg_pkg::AsyncOn[72:72]
+      comments:
+      [
+        alert_handler[72]: fatal
+      ]
+    }
+    module_rom_ctrl1:
+    {
+      tx_expr: alert_tx[73:73]
+      rx_expr: alert_rx[73:73]
+      async_expr: alert_handler_reg_pkg::AsyncOn[73:73]
+      comments:
+      [
+        alert_handler[73]: fatal
+      ]
+    }
+    module_dma:
+    {
+      tx_expr: alert_tx[74:74]
+      rx_expr: alert_rx[74:74]
+      async_expr: alert_handler_reg_pkg::AsyncOn[74:74]
+      comments:
+      [
+        alert_handler[74]: fatal_fault
+      ]
+    }
+    module_mbx0:
+    {
+      tx_expr: alert_tx[76:75]
+      rx_expr: alert_rx[76:75]
+      async_expr: alert_handler_reg_pkg::AsyncOn[76:75]
+      comments:
+      [
+        alert_handler[75]: fatal_fault
+        alert_handler[76]: recov_fault
+      ]
+    }
+    module_mbx1:
+    {
+      tx_expr: alert_tx[78:77]
+      rx_expr: alert_rx[78:77]
+      async_expr: alert_handler_reg_pkg::AsyncOn[78:77]
+      comments:
+      [
+        alert_handler[77]: fatal_fault
+        alert_handler[78]: recov_fault
+      ]
+    }
+    module_mbx2:
+    {
+      tx_expr: alert_tx[80:79]
+      rx_expr: alert_rx[80:79]
+      async_expr: alert_handler_reg_pkg::AsyncOn[80:79]
+      comments:
+      [
+        alert_handler[79]: fatal_fault
+        alert_handler[80]: recov_fault
+      ]
+    }
+    module_mbx3:
+    {
+      tx_expr: alert_tx[82:81]
+      rx_expr: alert_rx[82:81]
+      async_expr: alert_handler_reg_pkg::AsyncOn[82:81]
+      comments:
+      [
+        alert_handler[81]: fatal_fault
+        alert_handler[82]: recov_fault
+      ]
+    }
+    module_mbx4:
+    {
+      tx_expr: alert_tx[84:83]
+      rx_expr: alert_rx[84:83]
+      async_expr: alert_handler_reg_pkg::AsyncOn[84:83]
+      comments:
+      [
+        alert_handler[83]: fatal_fault
+        alert_handler[84]: recov_fault
+      ]
+    }
+    module_mbx5:
+    {
+      tx_expr: alert_tx[86:85]
+      rx_expr: alert_rx[86:85]
+      async_expr: alert_handler_reg_pkg::AsyncOn[86:85]
+      comments:
+      [
+        alert_handler[85]: fatal_fault
+        alert_handler[86]: recov_fault
+      ]
+    }
+    module_mbx6:
+    {
+      tx_expr: alert_tx[88:87]
+      rx_expr: alert_rx[88:87]
+      async_expr: alert_handler_reg_pkg::AsyncOn[88:87]
+      comments:
+      [
+        alert_handler[87]: fatal_fault
+        alert_handler[88]: recov_fault
+      ]
+    }
+    module_mbx_jtag:
+    {
+      tx_expr: alert_tx[90:89]
+      rx_expr: alert_rx[90:89]
+      async_expr: alert_handler_reg_pkg::AsyncOn[90:89]
+      comments:
+      [
+        alert_handler[89]: fatal_fault
+        alert_handler[90]: recov_fault
+      ]
+    }
+    module_mbx_pcie0:
+    {
+      tx_expr: alert_tx[92:91]
+      rx_expr: alert_rx[92:91]
+      async_expr: alert_handler_reg_pkg::AsyncOn[92:91]
+      comments:
+      [
+        alert_handler[91]: fatal_fault
+        alert_handler[92]: recov_fault
+      ]
+    }
+    module_mbx_pcie1:
+    {
+      tx_expr: alert_tx[94:93]
+      rx_expr: alert_rx[94:93]
+      async_expr: alert_handler_reg_pkg::AsyncOn[94:93]
+      comments:
+      [
+        alert_handler[93]: fatal_fault
+        alert_handler[94]: recov_fault
+      ]
+    }
+    module_soc_dbg_ctrl:
+    {
+      tx_expr: alert_tx[96:95]
+      rx_expr: alert_rx[96:95]
+      async_expr: alert_handler_reg_pkg::AsyncOn[96:95]
+      comments:
+      [
+        alert_handler[95]: fatal_fault
+        alert_handler[96]: recov_ctrl_update_err
+      ]
+    }
+    module_racl_ctrl:
+    {
+      tx_expr: alert_tx[98:97]
+      rx_expr: alert_rx[98:97]
+      async_expr: alert_handler_reg_pkg::AsyncOn[98:97]
+      comments:
+      [
+        alert_handler[97]: fatal_fault
+        alert_handler[98]: recov_ctrl_update_err
+      ]
+    }
+    module_ac_range_check:
+    {
+      tx_expr: alert_tx[100:99]
+      rx_expr: alert_rx[100:99]
+      async_expr: alert_handler_reg_pkg::AsyncOn[100:99]
+      comments:
+      [
+        alert_handler[99]: recov_ctrl_update_err
+        alert_handler[100]: fatal_fault
+      ]
+    }
+    module_rv_core_ibex:
+    {
+      tx_expr: alert_tx[104:101]
+      rx_expr: alert_rx[104:101]
+      async_expr: alert_handler_reg_pkg::AsyncOn[104:101]
+      comments:
+      [
+        alert_handler[101]: fatal_sw_err
+        alert_handler[102]: recov_sw_err
+        alert_handler[103]: fatal_hw_err
+        alert_handler[104]: recov_hw_err
+      ]
+    }
+  }
   interrupt_module:
   [
     uart0
@@ -23841,6 +24500,7 @@
         width: 1
         default: lc_ctrl_pkg::Off
         inst_name: rv_dm
+        top_signame: lc_ctrl_lc_dft_en
         index: -1
       }
       {
@@ -25548,6 +26208,7 @@
       }
       {
         name: sys
+        desc: SoC System Bus (requests and responses), synchronous
         struct: sys
         package: dma_pkg
         type: req_rsp

@@ -36,7 +36,7 @@
 
   // This is the clock data structure of the design.
   // The hier path refers to the clock reference path (struct / port)
-  //   - The top/ext desgination follows the same scheme as inter-module
+  //   - The top/ext designation follows the same scheme as inter-module
   // The src key indicates the raw clock sources in the design
   // The groups key indicates the various clock groupings in the design
   clocks: {
@@ -50,7 +50,7 @@
     // Clock Source attributes
     // name: Name of group.
     // aon:  Whether the clock is free running all the time.
-    //       If it is, the clock is not hanlded by clkmgr.
+    //       If it is, the clock is not handled by clkmgr.
     // freq: Absolute frequency of clk in Hz
     srcs: [
       { name: "main", aon: "no",  freq: "100000000" }
@@ -62,7 +62,7 @@
     // Derived clock source attributes
     // name: Name of group.
     // aon:  Whether the clock is free running all the time.
-    //       If it is, the clock is not hanlded by clkmgr.
+    //       If it is, the clock is not handled by clkmgr.
     // freq: Absolute frequency of clk in Hz
     // src:  From which clock source is the clock derived
     // div:  Ratio between derived clock and source clock
@@ -122,7 +122,7 @@
 
   // This is the reset data structure of the design.
   // The hier path refers to the reset reference path (struct / port)
-  //   - The top/ext desgination follows the same scheme as inter-module
+  //   - The top/ext designation follows the same scheme as inter-module
   // The node key represents all the known resets in the design
   resets: {
 
@@ -203,12 +203,14 @@
   // Number of cores: used in rv_plic and timer
   num_cores: "1",
 
-  // Interrupt handler information for the design
-  interrupts: {
-    // Any module with interrupts that doesn't specify plic
-    // will have its interrupts sent here
-    default_plic: "rv_plic"
-  }
+  // Any module with interrupts that doesn't specify plic
+  // will have its interrupts sent here
+  default_plic: "rv_plic"
+
+  // Any module with alerts that doesn't specify alert_handler
+  // will have its alerts sent here
+  default_alert_handler: null
+
 
   // `addr_spaces` names the distinct address spaces present in the device.
   // All hosts in the same address space share the same base addresses for
@@ -263,7 +265,7 @@
      //   reggen_only: Similar to reggen_top, but are not instantiated in the top level.
   module: [
     { name: "uart0",    // instance name
-      type: "uart",     // Must be matched to the ip name in `ip.hson` (_reg, _cfg permitted)
+      type: "uart",     // Must be matched to the ip name in `ip.hjson` (_reg, _cfg permitted)
                         // and `hw/ip/{type}`
 
       // clock connections defines the port to top level clock connection
@@ -278,9 +280,10 @@
       base_addr: {
         hart: "0x40000000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "uart1",    // instance name
-      type: "uart",     // Must be matched to the ip name in `ip.hson` (_reg, _cfg permitted)
+      type: "uart",     // Must be matched to the ip name in `ip.hjson` (_reg, _cfg permitted)
                         // and `hw/ip/{type}`
 
       // clock connections defines the port to top level clock connection
@@ -295,6 +298,7 @@
       base_addr: {
         hart: "0x40010000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "gpio",
       type: "gpio",
@@ -309,6 +313,7 @@
         GpioAsyncOn: "1"
       },
       attr: "ipgen"
+      outgoing_alert: "englishbreakfast",
     }
     { name: "spi_device",
       type: "spi_device",
@@ -318,6 +323,7 @@
       base_addr: {
         hart: "0x40050000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "spi_host0",
       type: "spi_host",
@@ -327,6 +333,7 @@
       base_addr: {
         hart: "0x40060000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "rv_timer",
       type: "rv_timer",
@@ -336,6 +343,7 @@
       base_addr: {
         hart: "0x40100000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "usbdev",
       type: "usbdev",
@@ -345,6 +353,7 @@
       base_addr: {
         hart: "0x40320000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "pwrmgr_aon",
       type: "pwrmgr",
@@ -363,7 +372,7 @@
         hart: "0x40400000",
       },
       attr: "ipgen",
-
+      outgoing_alert: "englishbreakfast",
     },
     { name: "rstmgr_aon",
       type: "rstmgr",
@@ -380,6 +389,7 @@
         SecCheck: "0",
       }
       attr: "ipgen",
+      outgoing_alert: "englishbreakfast",
     },
     { name: "clkmgr_aon",
       type: "clkmgr",
@@ -423,6 +433,7 @@
         hart: "0x40420000",
       },
       attr: "ipgen",
+      outgoing_alert: "englishbreakfast",
     },
     { name: "pinmux_aon",
       type: "pinmux",
@@ -438,6 +449,7 @@
         hart: "0x40460000",
       },
       attr: "ipgen",
+      outgoing_alert: "englishbreakfast",
     },
     { name: "aon_timer_aon",
       type: "aon_timer",
@@ -448,6 +460,7 @@
       base_addr: {
         hart: "0x40470000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "ast",
       type: "ast",
@@ -505,6 +518,7 @@
         }
       }
       attr: "ipgen",
+      outgoing_alert: "englishbreakfast",
     },
     { name: "rv_plic",
       type: "rv_plic",
@@ -517,6 +531,7 @@
       },
       attr: "ipgen",
       targets: ["rv_core_ibex"]
+      outgoing_alert: "englishbreakfast",
     },
     { name: "aes",
       type: "aes",
@@ -530,6 +545,7 @@
       base_addr: {
         hart: "0x41100000",
       },
+      outgoing_alert: "englishbreakfast",
     },
     { name: "sram_ctrl_main",
       type: "sram_ctrl",
@@ -554,6 +570,7 @@
           size:       "0x20000"
         }
       }
+      outgoing_alert: "englishbreakfast",
     },
     { name: "rom_ctrl",
       type: "rom_ctrl",
@@ -576,13 +593,14 @@
       param_decl: {
         SecDisableScrambling: "1'b1"
       }
+      outgoing_alert: "englishbreakfast",
     },
     { name: "rv_core_ibex",
       type: "rv_core_ibex",
       template_type: "rv_core_ibex",
       attr: "ipgen",
-      ipgen_param: {
-        NumRegions: 2
+      ipgen_params: {
+        num_regions: 2
       }
       param_decl: {PMPEnable: "0",
                    PMPGranularity: "0",
@@ -616,6 +634,7 @@
       base_addr: {
         hart: "0x411F0000",
       },
+      outgoing_alert: "englishbreakfast",
     },
   ]
 
@@ -1048,7 +1067,7 @@
         ],
 
         add_pads: [
-          // Additional infrastucture pads
+          // Additional infrastructure pads
           { name: 'IO_CLK',           type: 'InputStd', bank: 'VCC', connection: 'manual', desc: 'Extra clock input for FPGA target'}
           { name: 'POR_BUTTON_N',     type: 'InputStd', bank: 'VCC', connection: 'manual', desc: 'POR from the push-button'}
           // Custom USB pads

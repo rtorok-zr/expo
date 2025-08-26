@@ -11,10 +11,12 @@ from typing import TextIO
 from reggen.ip_block import IpBlock
 from reggen.reg_block import RegBlock
 from reggen.register import Register
+from reggen.multi_register import MultiRegister
 from reggen.window import Window
 from reggen.field import Field
-from reggen.access import SWAccess, SwAccess, HWAccess, HwAccess
+from reggen.access import SWAccess, HWAccess, HwAccess
 from reggen.exporter import Exporter
+from reggen.systemrdl.udp import register_udps
 
 import systemrdl.component
 from systemrdl import RDLCompiler  # type: ignore[attr-defined]
@@ -36,7 +38,7 @@ class HWAccess2Systemrdl:
         HwAccess.HRO: {"hw": AccessType.r},
         HwAccess.HRW: {"hw": AccessType.rw},
         HwAccess.HWO: {"hw": AccessType.w},
-        HwAccess.NONE: {"hw": AccessType.rw},
+        HwAccess.NONE: {"hw": AccessType.na},
     }
 
     def export(self) -> dict[str, object]:
@@ -53,25 +55,30 @@ class SWAccess2Systemrdl:
     #   onread: Side effect when software reads.
     #   onwrite: Side effect when software writes.
     MAP = {
-        SwAccess.RO: {"sw": AccessType.r},
-        SwAccess.RC: {"sw": AccessType.r, "onread": OnReadType.rclr},
-        SwAccess.R0W1C: {"sw": AccessType.w, "onwrite": OnWriteType.woclr},
-        SwAccess.RW: {"sw": AccessType.rw},
-        SwAccess.WO: {"sw": AccessType.w},
-        SwAccess.W1C: {"sw": AccessType.w, "onwrite": OnWriteType.woset},
-        SwAccess.W0C: {"sw": AccessType.w, "onwrite": OnWriteType.wzc},
-        SwAccess.W1S: {"sw": AccessType.w, "onwrite": OnWriteType.woset},
-        SwAccess.NONE: {"sw": AccessType.r},
+        "ro": {"sw": AccessType.r},
+        "rw": {"sw": AccessType.rw},
+        "wo": {"sw": AccessType.w},
+        "rc": {"sw": AccessType.rw, "onread": OnReadType.rclr},
+        "r0w1c": {"sw": AccessType.w, "onwrite": OnWriteType.woclr},
+        "rw1c": {"sw": AccessType.rw, "onwrite": OnWriteType.woclr},
+        "rw0c": {"sw": AccessType.rw, "onwrite": OnWriteType.wzc},
+        "rw1s": {"sw": AccessType.rw, "onwrite": OnWriteType.woset},
+        "none": {"sw": AccessType.na},
     }
 
     def export(self) -> dict[str, object]:
-        return self.MAP[self.inner.value[1]]
+        return self.MAP[self.inner.key]
 
 
 @dataclass
 class Field2Systemrdl:
     inner: Field
     importer: RDLImporter
+
+    def _get_mubi_name(self) -> str:
+        alignment = 4
+        aligned_width = (self.inner.bits.width() + alignment - 1) & ~(alignment - 1)
+        return f"MultiBitBool{aligned_width}"
 
     def export(self) -> systemrdl.component.Field:
         rdl_t = self.importer.create_field_definition(self.inner.name)
@@ -98,6 +105,11 @@ class Field2Systemrdl:
         if self.inner.desc:
             self.importer.assign_property(field, "desc", self.inner.desc)
 
+        if self.inner.mubi:
+            mubi_enum_name = self._get_mubi_name()
+            enum = self.importer.compiler.namespace.lookup_type(mubi_enum_name)
+            self.importer.assign_property(field, "encode", enum)
+
         return field
 
 
@@ -116,17 +128,42 @@ class Window2Systemrdl:
         )
 
 
-@dataclass
 class Register2Systemrdl:
     inner: Register
     importer: RDLImporter
+    stride: int | None = None
+    count: int | None = None
+
+    def __init__(self, reg: MultiRegister | Register, importer: RDLImporter):
+        self.importer = importer
+        if isinstance(reg, Register):
+            self.inner = reg
+        elif isinstance(reg, MultiRegister):
+            self.inner = reg.cregs[0]
+            self.stride = reg.stride
+            self.count = len(reg.cregs)
 
     def export(self) -> systemrdl.component.Reg:
-        rdl_t = self.importer.create_reg_definition(self.inner.name)
+        reg_type = self.importer.create_reg_definition(self.inner.name)
         for rfield in self.inner.fields:
-            self.importer.add_child(rdl_t, Field2Systemrdl(rfield, self.importer).export())
+            self.importer.add_child(reg_type, Field2Systemrdl(rfield, self.importer).export())
 
-        return self.importer.instantiate_reg(rdl_t, self.inner.name, self.inner.offset)
+        reg_type.external = self.inner.hwext
+
+        if self.inner.hwre:
+            self.importer.assign_property(reg_type, "hwre", self.inner.hwre)
+
+        if self.inner.shadowed:
+            self.importer.assign_property(reg_type, "shadowed", self.inner.shadowed)
+
+        reg = self.importer.instantiate_reg(
+            reg_type,
+            self.inner.name,
+            self.inner.offset,
+            [self.count] if self.count else None,
+            self.stride if self.stride else None,
+        )
+        return reg
 
 
 @dataclass
@@ -135,24 +172,25 @@ class RegBlock2Systemrdl:
     importer: RDLImporter
 
     def export(self) -> Addrmap | None:
-        nonempty = False
-
         name = self.inner.name or "none"
         rdl_addrmap_t = self.importer.create_addrmap_definition(name)
         rdl_addrmap = self.importer.instantiate_addrmap(rdl_addrmap_t, name, 0)
 
         # registers and multiregs
-        for name, flat_reg in self.inner.name_to_flat_reg.items():
-            nonempty = True
-            self.importer.add_child(
-                rdl_addrmap, Register2Systemrdl(flat_reg, self.importer).export()
-            )
+        for reg in self.inner.registers:
+            self.importer.add_child(rdl_addrmap, Register2Systemrdl(reg, self.importer).export())
+
+        # multiregs
+        for mreg in self.inner.multiregs:
+            self.importer.add_child(rdl_addrmap, Register2Systemrdl(mreg, self.importer).export())
 
         # windows
         for window in self.inner.windows:
-            nonempty = True
             self.importer.add_child(rdl_addrmap, Window2Systemrdl(window, self.importer).export())
 
+        nonempty = bool(
+            len(self.inner.registers) + len(self.inner.multiregs) + len(self.inner.windows)
+        )
         return rdl_addrmap if nonempty else None
 
 
@@ -185,6 +223,8 @@ class IpBlock2Systemrdl:
 class SystemrdlExporter(Exporter):
     def export(self, outfile: TextIO) -> int:
         comp = RDLCompiler()
+        register_udps(comp)
+
         imp = RDLImporter(comp)
         imp.default_src_ref = FileSourceRef(outfile.name)
 

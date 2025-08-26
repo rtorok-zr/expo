@@ -35,6 +35,13 @@ archive_override(
     urls = ["https://github.com/lowRISC/misc-linters/archive/refs/tags/20250217_01.tar.gz"],
 )
 
+archive_override(
+    module_name = "rules_multitool",
+    sha256 = "63e8b3d7999574a62ccf49d3234390c584a11ac90392eb16d63b964584c1af6c",
+    strip_prefix = "rules_multitool-temp-fork-0.4",
+    urls = ["https://github.com/jwnrt/rules_multitool/archive/refs/tags/temp-fork-0.4.tar.gz"],
+)
+
 ################### originally from //third_party/rust:rust.MODULE.bazel
 
 # Dependencies:
@@ -66,7 +73,7 @@ single_version_override(
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.repository_set(
     name = "rust_host",
-    edition = "2021",
+    edition = "2024",
     exec_triple = "x86_64-unknown-linux-gnu",
     sha256s = {
         "2025-01-03/rustc-nightly-x86_64-unknown-linux-gnu.tar.xz": "a7e713b2c38d2c16a2025d228480909a2281c91ad8fd225b1dacc3eda933724c",

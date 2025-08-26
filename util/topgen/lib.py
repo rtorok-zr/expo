@@ -869,7 +869,7 @@ def find_modules(modules: List[Dict[str, object]],
 def find_module(
         modules: List[Dict[str, object]],
         type: str,
-        use_base_template_type=True) -> Optional[List[Dict[str, object]]]:
+        use_base_template_type=True) -> Optional[Dict[str, object]]:
     '''Returns the first module of a given type
 
     If use_base_template_type is set to True, ipgen-based modules are
@@ -878,6 +878,15 @@ def find_module(
     '''
     mods = find_modules(modules, type, use_base_template_type)
     return mods[0] if mods else None
+
+
+def find_module_by_name(modules: List[Dict[str, object]],
+                        name: str) -> Optional[Dict[str, object]]:
+    """Return the (first) module with a given name, or None."""
+    for m in modules:
+        if m["name"] == name:
+            return m
+    return None
 
 
 def get_addr_space(top: ConfigT, addr_space_name: str) -> ConfigT:
@@ -922,10 +931,7 @@ class TopGen:
         self._enum_type = enum_type
         self._array_mapping_type = array_mapping_type
 
-        if "interrupts" in self.top:
-            self.default_plic = self.top["interrupts"].get("default_plic")
-        else:
-            self.default_plic = None
+        self.default_plic = self.top.get("default_plic", None)
         self._init_plics()
 
         # Only generate alert_handler and mappings if there is an alert_handler

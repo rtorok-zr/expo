@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from enum import Enum
 
 from basegen.lib import Name
-from topgen.lib import CEnum, CArrayMapping
+from topgen.lib import CEnum, CArrayMapping, find_modules
 from reggen.ip_block import IpBlock
 
 import logging
@@ -260,12 +260,29 @@ class Extension(ABC):
         HeaderEnd = 0  # At the end of `dt_<ip>.h`
         SourceEnd = 1  # At the end of `dt_<ip>.c`
         SourceIncludes = 2  # At the include stage of `dt_<ip>.c`
+        HeaderIncludes = 3  # At the include stage of `dt_<ip>.h`
 
     def render_dt_ip(self, pos: DtIpPos) -> str:
         """
         Return a string that will be inserted in the dt_<ip>.{c,h} file at a given position.
         """
         return ""
+
+
+class TopGenHelper:
+    """
+    We cannot easily import the TopGen class from topgen.lib so we need to replicate some
+    of the logic when it comes to type/enum naming. This helper classes encapsulats this logic.
+    """
+    def __init__(self, topcfg):
+        self.top = topcfg
+
+    def irq_id_type_name(self, plic_name: str) -> Name:
+        """
+        Given a PLIC name, return the full naem of the `irq_id_t` type.
+        """
+        return Name(["top"]) + Name.from_snake_case(self.top["name"]) + \
+            Name.from_snake_case(plic_name.removeprefix("rv_")) + Name(["irq", "id"])
 
 
 class TopHelper:
@@ -299,6 +316,7 @@ class TopHelper:
     def __init__(self, topcfg, enum_type, array_mapping_type):
         self.top = topcfg
         self._top_name = Name(["top"]) + Name.from_snake_case(topcfg["name"])
+        self._topgen = TopGenHelper(topcfg)
 
         assert enum_type in [CEnum], "Unsupported enum type"
         assert array_mapping_type in [CArrayMapping], \
@@ -520,11 +538,14 @@ registers to connect a peripheral to this pad.""",  # noqa:E501
         """
         Create the array mappings to dispatch interrupts.
         """
+
+        plic_names = [m["name"] for m in find_modules(self.top["module"], "rv_plic")]
+        assert len(plic_names) == 1, "dtgen assumes that there is exactly one PLIC"
+        self.the_plic_irq_id_type_name = self._topgen.irq_id_type_name(plic_names[0])
+
         self.inst_from_irq_map = ArrayMapType(
             elem_type = ScalarType(self.instance_id_enum.name),
-            index_type = ScalarType(Name(["top"]) +
-                                    Name.from_snake_case(self.top["name"]) +
-                                    Name(["plic", "irq", "id"])),
+            index_type = ScalarType(self.the_plic_irq_id_type_name),
             length = Name(["count"])
         )
         self.inst_from_irq_values = OrderedDict(
@@ -877,9 +898,7 @@ class IpHelper:
             # FIXME We need to handle better the case where a block is not connected to the PLIC.
             self.inst_struct.add_field(
                 name = self.FIRST_IRQ_FIELD_NAME,
-                field_type = ScalarType(Name(["top"]) +
-                                        Name.from_snake_case(self.top["name"]) +
-                                        Name(["plic", "irq", "id"])),
+                field_type = ScalarType(self.top_helper.the_plic_irq_id_type_name),
                 docstring = """PLIC ID of the first IRQ of this instance
 
 This can be `kDtPlicIrqIdNone` if the block is not connected to the PLIC."""

@@ -18,7 +18,7 @@ class Testplan:
         """
         Return a unique list of bazel targets
         """
-        res = [item for tp in self.testpoints for item in tp["bazel"]]
+        res = [item for tp in self.testpoints for item in tp.get("bazel", [])]
         return list(sorted(set(res)))
 
     def get_si_stage(self) -> list[str]:
@@ -27,6 +27,13 @@ class Testplan:
         """
         res = [tp["si_stage"] for tp in self.testpoints]
         res = filter(lambda item: item.lower() not in ["na", "none"], res)
+        return list(sorted(set(res)))
+
+    def get_lc_states(self) -> list[str]:
+        """
+        Return a unique list of life-cycle stages
+        """
+        res = [state for tp in self.testpoints for state in tp.get("lc_states", [])]
         return list(sorted(set(res)))
 
     def join(self, other: "Testplan") -> None:
@@ -81,22 +88,22 @@ class Testplan:
 
     @staticmethod
     def from_dict(testplan: dict) -> "Testplan":
-        OPTIONAL_FIELDS = [
-            "bazel",
-            "lc_states",
-            "features",
-            "boot_stages",
-            "tags",
-            "otp_mutate",
-            "host_support",
-            "si_stage",
-        ]
+        OPTIONAL_FIELDS = {
+            "bazel": lambda: [],
+            "lc_states": lambda: [],
+            "features": lambda: [],
+            "boot_stages": lambda: [],
+            "tags": lambda: [],
+            "otp_mutate": lambda: False,
+            "host_support": lambda: False,
+            "si_stage": lambda: "None",
+        }
         testpoints = testplan["testpoints"]
         for test in testpoints:
             test["ip"] = testplan.get("name", "unknown")
-            for f in OPTIONAL_FIELDS:
+            for f, default in OPTIONAL_FIELDS.items():
                 if f not in test:
-                    test[f] = "None"
+                    test[f] = default()
 
         return Testplan(testpoints)
 

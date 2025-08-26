@@ -4,17 +4,19 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context, Result};
+use base64ct::{Base64, Encoding};
 use clap::{Args, Parser};
 use elliptic_curve::pkcs8::DecodePrivateKey;
 use elliptic_curve::SecretKey;
 use p256::NistP256;
 
 use cert_lib::{CaConfig, CaKey, CaKeyType};
+use ft_lib::response::PersonalizeResponse;
 use ft_lib::{
-    check_rom_ext_boot_up, run_ft_personalize, run_sram_ft_individualize, test_exit, test_unlock,
+    check_slot_b_boot_up, run_ft_personalize, run_sram_ft_individualize, test_exit, test_unlock,
 };
 use opentitanlib::backend;
 use opentitanlib::console::spi::SpiConsoleDevice;
@@ -23,7 +25,10 @@ use opentitanlib::test_utils::init::InitializeTest;
 use opentitanlib::test_utils::lc::read_lc_state;
 use opentitanlib::test_utils::load_sram_program::SramProgramParams;
 use ujson_lib::provisioning_data::{ManufCertgenInputs, ManufFtIndividualizeData};
-use util_lib::{hex_string_to_u32_arrayvec, hex_string_to_u8_arrayvec};
+use util_lib::{
+    encrypt_token, hex_string_to_u32_arrayvec, hex_string_to_u8_arrayvec, load_rsa_public_key,
+    random_token,
+};
 
 /// Provisioning data command-line parameters.
 #[derive(Debug, Args, Clone)]
@@ -44,7 +49,7 @@ pub struct ManufFtProvisioningDataInput {
 
     /// RMA unlock token; a 128-bit hex string.
     #[arg(long)]
-    pub rma_unlock_token: String,
+    pub rma_unlock_token: Option<String>,
 
     /// LC state to transition to from TEST_UNLOCKED*.
     #[arg(long, value_parser = DifLcCtrlState::parse_lc_state_str)]
@@ -69,6 +74,14 @@ pub struct ManufFtProvisioningDataInput {
     /// Security version the Owner image to be loaded onto the device.
     #[arg(long, default_value = "0")]
     pub owner_security_version: u32,
+
+    /// Token Encryption public key (RSA) DER file path.
+    #[arg(long)]
+    token_encrypt_key_der_file: PathBuf,
+
+    /// Pretty-print the provisioning data output.
+    #[arg(long, default_value = "false")]
+    pretty: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -97,11 +110,17 @@ struct Opts {
     /// Name of the SPI interface to connect to the OTTF console.
     #[arg(long, default_value = "BOOTSTRAP")]
     console_spi: String,
+
+    /// Owner's firmware string indicating successful start up.
+    #[arg(long)]
+    owner_success_text: Option<String>,
 }
 
 fn main() -> Result<()> {
     let opts = Opts::parse();
     opts.init.init_logging();
+
+    let mut response = PersonalizeResponse::default();
 
     // We call the below functions, instead of calling `opts.init.init_target()` since we do not
     // want to perform bootstrap yet.
@@ -116,13 +135,27 @@ fn main() -> Result<()> {
         hex_string_to_u32_arrayvec::<4>(opts.provisioning_data.test_unlock_token.as_str())?;
     let _test_exit_token =
         hex_string_to_u32_arrayvec::<4>(opts.provisioning_data.test_exit_token.as_str())?;
-    let rma_unlock_token =
-        hex_string_to_u32_arrayvec::<4>(opts.provisioning_data.rma_unlock_token.as_str())?;
+    let rma_unlock_token = if let Some(token) = &opts.provisioning_data.rma_unlock_token {
+        hex_string_to_u32_arrayvec::<4>(token.as_str())?
+    } else {
+        random_token::<4>()?
+    };
+    let token_encrypt_key =
+        load_rsa_public_key(&opts.provisioning_data.token_encrypt_key_der_file)?;
+    let encrypted_rma_unlock_token = encrypt_token(&token_encrypt_key, &rma_unlock_token)?;
+    response.rma_unlock_token = Base64::encode_string(&encrypted_rma_unlock_token);
+    log::info!("Encrypted rma_unlock_token = {}", response.rma_unlock_token);
 
     // Parse and prepare individualization ujson data payload.
-    let _ft_individualize_data_in = ManufFtIndividualizeData {
+    let ft_individualize_data_in = ManufFtIndividualizeData {
         device_id: hex_string_to_u32_arrayvec::<8>(opts.provisioning_data.device_id.as_str())?,
     };
+    response.device_id = ft_individualize_data_in
+        .device_id
+        .iter()
+        .map(|v| format!("{v:08X}"))
+        .collect::<Vec<String>>()
+        .join("");
 
     // Parse and prepare CA key.
     let mut ca_cfgs: HashMap<String, CaConfig> = serde_annotate::from_str(
@@ -171,11 +204,12 @@ fn main() -> Result<()> {
     };
 
     // Only run test unlock operation if we are in a locked LC state.
-    match read_lc_state(
+    response.lc_state.initial = read_lc_state(
         &transport,
         &opts.init.jtag_params,
         opts.init.bootstrap.options.reset_delay,
-    )? {
+    )?;
+    match response.lc_state.initial {
         DifLcCtrlState::TestLocked0
         | DifLcCtrlState::TestLocked1
         | DifLcCtrlState::TestLocked2
@@ -183,12 +217,14 @@ fn main() -> Result<()> {
         | DifLcCtrlState::TestLocked4
         | DifLcCtrlState::TestLocked5
         | DifLcCtrlState::TestLocked6 => {
+            let t0 = Instant::now();
             test_unlock(
                 &transport,
                 &opts.init.jtag_params,
                 opts.init.bootstrap.options.reset_delay,
                 &_test_unlock_token,
             )?;
+            response.stats.log_elapsed_time("test-unlock", t0);
         }
         _ => {
             log::info!("Skipping test unlock operation. Device is already unlocked.");
@@ -197,11 +233,12 @@ fn main() -> Result<()> {
 
     // Only run the SRAM individualize program in a test unlocked state. If we have transitioned to
     // a mission state already, then we can skip this step.
-    match read_lc_state(
+    response.lc_state.unlocked = read_lc_state(
         &transport,
         &opts.init.jtag_params,
         opts.init.bootstrap.options.reset_delay,
-    )? {
+    )?;
+    match response.lc_state.unlocked {
         DifLcCtrlState::TestUnlocked0 => {
             bail!("FT stage cannot be run from test unlocked 0. Run CP stage first.");
         }
@@ -212,15 +249,19 @@ fn main() -> Result<()> {
         | DifLcCtrlState::TestUnlocked5
         | DifLcCtrlState::TestUnlocked6
         | DifLcCtrlState::TestUnlocked7 => {
+            response.lc_state.individualize = Some(response.lc_state.unlocked);
+            let t0 = Instant::now();
             run_sram_ft_individualize(
                 &transport,
                 &opts.init.jtag_params,
                 opts.init.bootstrap.options.reset_delay,
                 &opts.sram_program,
-                &_ft_individualize_data_in,
+                &ft_individualize_data_in,
                 opts.timeout,
                 &spi_console_device,
             )?;
+            response.stats.log_elapsed_time("ft-individualize", t0);
+            let t0 = Instant::now();
             test_exit(
                 &transport,
                 &opts.init.jtag_params,
@@ -228,6 +269,9 @@ fn main() -> Result<()> {
                 &_test_exit_token,
                 opts.provisioning_data.target_mission_mode_lc_state,
             )?;
+            response.lc_state.mission_mode =
+                Some(opts.provisioning_data.target_mission_mode_lc_state);
+            response.stats.log_elapsed_time("test-exit", t0);
         }
         _ => {
             log::info!("Skipping individualize operation. Device is already in a mission mode.");
@@ -248,10 +292,23 @@ fn main() -> Result<()> {
         opts.second_bootstrap,
         &spi_console_device,
         opts.timeout,
+        &mut response,
     )?;
 
-    check_rom_ext_boot_up(&transport, &opts.init, opts.timeout)?;
+    check_slot_b_boot_up(
+        &transport,
+        &opts.init,
+        opts.timeout,
+        &mut response,
+        opts.owner_success_text,
+    )?;
     log::info!("Provisioning Done");
+    let doc = if opts.provisioning_data.pretty {
+        serde_json::to_string_pretty(&response)?
+    } else {
+        serde_json::to_string(&response)?
+    };
+    println!("PROVISIONING_DATA: {doc}");
 
     Ok(())
 }

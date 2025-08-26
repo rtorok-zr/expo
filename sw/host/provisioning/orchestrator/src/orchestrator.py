@@ -5,12 +5,15 @@
 
 import argparse
 import logging
+import os
 import shlex
 import subprocess
 import sys
+from pathlib import Path
 
 import hjson
 
+import db
 from device_id import DeviceId, DeviceIdentificationNumber
 from ot_dut import OtDut
 from sku_config import SkuConfig
@@ -54,7 +57,7 @@ fpga:          {args.fpga}
         confirm()
 
 
-def main():
+def main(args_in):
     # Setup logging.
     logging.basicConfig(
         level=logging.DEBUG,
@@ -91,12 +94,6 @@ def main():
         help="Raw test exit token to inject into OTP SECRET0 partition.",
     )
     parser.add_argument(
-        "--rma-unlock-token",
-        required=True,
-        type=parse_hexstring_to_int,
-        help="Raw RMA token to inject into OTP SECRET2 partition.",
-    )
-    parser.add_argument(
         "--fpga",
         choices=["hyper310", "cw340"],
         help="Run flow on FPGA (instead of silicon).",
@@ -108,11 +105,20 @@ def main():
         help="Skip all non-required user confirmations.",
     )
     parser.add_argument(
+        "--runfiles-dir",
+        type=str,
+        help="Runfiles directory to use for provisioning.",
+    )
+    parser.add_argument(
         "--log-dir",
         default="logs",
         help="Root directory to store log files under.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(args_in)
+
+    # All relative paths are relative to the runfiles directory.
+    if args.runfiles_dir:
+        os.chdir(args.runfiles_dir)
 
     # Load and validate a SKU configuration file.
     sku_config_args = {}
@@ -140,6 +146,10 @@ def main():
                                  capture_output=True,
                                  text=True).stdout.strip()
 
+    db_path = Path(args.log_dir) / db.DEFAULT_DB_FILENAME
+    db_handle = db.DB(db.DBConfig(db_path=db_path))
+    db.DeviceRecord.create_table(db_handle)
+
     # Run all provisioning flows.
     get_user_confirmation(sku_config, device_id, commit_hash, args)
     dut = OtDut(logs_root_dir=args.log_dir,
@@ -147,13 +157,15 @@ def main():
                 device_id=device_id,
                 test_unlock_token=args.test_unlock_token,
                 test_exit_token=args.test_exit_token,
-                rma_unlock_token=args.rma_unlock_token,
                 fpga=args.fpga,
                 require_confirmation=not args.non_interactive)
     dut.run_cp()
     dut.run_ft()
-    # TODO: Extract provisioning data from logs and commit to DB.
+
+    device_record = db.DeviceRecord.from_dut(dut)
+    device_record.upsert(db_handle)
+    logging.info(f"Added DeviceRecord to database: {device_record}")
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

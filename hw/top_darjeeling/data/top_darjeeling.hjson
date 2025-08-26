@@ -42,7 +42,7 @@
 
   // This is the clock data structure of the design.
   // The hier path refers to the clock reference path (struct / port)
-  //   - The top/ext desgination follows the same scheme as inter-module
+  //   - The top/ext designation follows the same scheme as inter-module
   // The src key indicates the raw clock sources in the design
   // The groups key indicates the various clock groupings in the design
   clocks: {
@@ -56,7 +56,7 @@
     // Clock Source attributes
     // name: Name of group.
     // aon:  Whether the clock is free running all the time.
-    //       If it is, the clock is not hanlded by clkmgr.
+    //       If it is, the clock is not handled by clkmgr.
     // freq: Absolute frequency of clk in Hz
     // ref: indicates the clock is used as a reference for measurement.
     srcs: [
@@ -68,7 +68,7 @@
     // Derived clock source attributes
     // name: Name of group.
     // aon:  Whether the clock is free running all the time.
-    //       If it is, the clock is not hanlded by clkmgr.
+    //       If it is, the clock is not handled by clkmgr.
     // freq: Absolute frequency of clk in Hz
     // src:  From which clock source is the clock derived
     // div:  Ratio between derived clock and source clock
@@ -113,7 +113,7 @@
 
   // This is the reset data structure of the design.
   // The hier path refers to the reset reference path (struct / port)
-  //   - The top/ext desgination follows the same scheme as inter-module
+  //   - The top/ext designation follows the same scheme as inter-module
   // The node key represents all the known resets in the design
   resets: {
     // Discrete OpenTitan does not need to wait for external resets
@@ -196,12 +196,13 @@
   // Number of cores: used in rv_plic and timer
   num_cores: "1",
 
-  // Interrupt handler information for the design
-  interrupts: {
-    // Any module with interrupts that doesn't specify plic
-    // will have its interrupts sent here
-    default_plic: "rv_plic"
-  }
+  // Any module with interrupts that doesn't specify plic
+  // will have its interrupts sent here
+  default_plic: "rv_plic"
+
+  // Any module with alerts that doesn't specify alert_handler
+  // will have its alerts sent here
+  default_alert_handler: "alert_handler"
 
   // `addr_spaces` names the distinct address spaces present in the device.
   // All hosts in the same address space share the same base addresses for
@@ -282,7 +283,7 @@
      //   reggen_only: Similar to reggen_top, but are not instantiated in the top level.
   module: [
     { name: "uart0",    // instance name
-      type: "uart",     // Must be matched to the ip name in `ip.hson` (_reg, _cfg permitted)
+      type: "uart",     // Must be matched to the ip name in `ip.hjson` (_reg, _cfg permitted)
                         // and `hw/ip/{type}`
 
       // clock connections defines the port to top level clock connection
@@ -311,7 +312,7 @@
         GpioAsHwStrapsEn: "1",
         GpioAsyncOn: "1"
       },
-      ipgen_param: {
+      ipgen_params: {
         num_inp_period_counters: 8
       }
       attr: "ipgen"
@@ -887,7 +888,8 @@
         }
       },
       param_decl: {
-        SecDisableScrambling: "1'b0"
+        SecDisableScrambling: "1'b0",
+        FlopToKmac: "1'b1"
       }
     },
     { name: "rom_ctrl1",
@@ -913,7 +915,8 @@
         }
       },
       param_decl: {
-        SecDisableScrambling: "1'b0"
+        SecDisableScrambling: "1'b0",
+        FlopToKmac: "1'b1"
       }
     },
     { name: "dma",
@@ -1083,7 +1086,7 @@
       base_addr: {
         soc_mbx: "0x01464000"
       },
-      ipgen_param: {
+      ipgen_params: {
         num_ranges: 32
       }
       attr: "ipgen",
@@ -1093,8 +1096,8 @@
       type: "rv_core_ibex",
       template_type: "rv_core_ibex",
       attr: "ipgen",
-      ipgen_param: {
-        NumRegions: 32
+      ipgen_params: {
+        num_regions: 32
       }
       param_decl: {PMPEnable: "1",
                    PMPGranularity: "0",
@@ -1122,6 +1125,7 @@
                    DmHaltAddr: "tl_main_pkg::ADDR_SPACE_RV_DM__MEM + dm::HaltAddress[31:0]",
                    DmExceptionAddr: "tl_main_pkg::ADDR_SPACE_RV_DM__MEM + dm::ExceptionAddress[31:0]",
                    PipeLine: "1",
+                   InstructionPipeline: "1",
                    NEscalationSeverities: "AlertHandlerEscNumSeverities",
                    WidthPingCounter: "AlertHandlerEscPingCountWidth",
                   },
@@ -1288,7 +1292,8 @@
       'lc_ctrl.lc_dft_en'          : ['otp_macro.lc_dft_en',
                                       'ast.lc_dft_en',
                                       'pwrmgr_aon.lc_dft_en',
-                                      'soc_dbg_ctrl.lc_dft_en'
+                                      'soc_dbg_ctrl.lc_dft_en',
+                                      'rv_dm.lc_dft_en'
                                      ],
       'lc_ctrl.lc_hw_debug_clr'    : ['rv_dm.lc_hw_debug_clr'],
       'lc_ctrl.lc_hw_debug_en'     : ['sram_ctrl_main.lc_hw_debug_en',
@@ -1845,7 +1850,7 @@
 
       pinmux: {
         // Special signal positions. Each entry in the list below creates a
-        // target-specific pad position parameter in the  chiplevel hierarchy
+        // target-specific pad position parameter in the chiplevel hierarchy
         // that can be used to parameterize certain IPs like the pinmux or
         // padring. This is mainly used to define the pad positions of special
         // test and DFT signals such as the JTAG signals and the TAP and DFT

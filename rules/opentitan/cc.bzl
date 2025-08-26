@@ -231,10 +231,13 @@ def _build_binary(ctx, exec_env, name, deps, kind):
     return provides, signed
 
 def _opentitan_binary(ctx):
+    tc = ctx.toolchains[LOCALTOOLS_TOOLCHAIN]
+
     providers = []
     default_info = []
     groups = {}
     ot_bin_env_info = {}
+    validations = []
     for exec_env_target in ctx.attr.exec_env:
         exec_env = exec_env_target[ExecEnvInfo]
         name = _binary_name(ctx, exec_env)
@@ -272,6 +275,32 @@ def _opentitan_binary(ctx):
         groups.update(_as_group_info(exec_env.exec_env, signed))
         groups.update(_as_group_info(exec_env.exec_env, provides))
         ot_bin_env_info[exec_env.provider] = exec_env
+
+        # Module ID checks:
+        #
+        # We create a file that will not contain anything: this is just to create a "link"
+        # between the run action and validation group.
+        generated_file = ctx.actions.declare_file("{}.mod-id".format(name))
+
+        # Call bash script that will run opentitantool and capture the output. We want to avoid
+        # printing anything if the test is successful but by default opentitantool prints
+        # unnecessary information that pollutes the output.
+        ctx.actions.run(
+            executable = ctx.executable._modid_check,
+            arguments = [
+                tc.tools.opentitantool.executable.path,
+                generated_file.path,
+                provides["elf"].path,
+            ],
+            inputs = [provides["elf"]],
+            tools = [tc.tools.opentitantool],
+            outputs = [generated_file],
+            progress_message = "Checking module IDs for %{label}",
+        )
+        validations.append(generated_file)
+
+    # Validation group.
+    groups["_validation"] = depset(validations)
 
     providers.append(DefaultInfo(files = depset(default_info)))
     providers.append(OutputGroupInfo(**groups))
@@ -380,9 +409,14 @@ opentitan_binary = rv_rule(
             doc = "List of execution environments for this target.",
         ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
+        "_modid_check": attr.label(
+            default = "//rules/scripts:modid_check",
+            executable = True,
+            cfg = "exec",
+        ),
     }.items()),
     fragments = ["cpp"],
-    toolchains = ["@rules_cc//cc:toolchain_type"],
+    toolchains = ["@rules_cc//cc:toolchain_type", LOCALTOOLS_TOOLCHAIN],
 )
 
 def _testing_bitstream_impl(settings, attr):
@@ -491,14 +525,21 @@ opentitan_test = rv_rule(
             doc = "OpenOCD adapter configuration override for this test",
         ),
         "_cc_toolchain": attr.label(default = Label("@bazel_tools//tools/cpp:current_cc_toolchain")),
+        "_modid_check": attr.label(
+            default = "//rules/scripts:modid_check",
+            executable = True,
+            cfg = "exec",
+        ),
     }.items()),
     fragments = ["cpp"],
-    toolchains = ["@rules_cc//cc:toolchain_type"],
+    toolchains = ["@rules_cc//cc:toolchain_type", LOCALTOOLS_TOOLCHAIN],
     test = True,
 )
 
 def _opentitan_binary_assemble_impl(ctx):
     assembled_bins = []
+    result = []
+    ot_bin_env_info = {}
     tc = ctx.toolchains[LOCALTOOLS_TOOLCHAIN]
     for env in ctx.attr.exec_env:
         exec_env_name = env[ExecEnvInfo].exec_env
@@ -511,10 +552,12 @@ def _opentitan_binary_assemble_impl(ctx):
                 fail("Only flash binaries can be assembled.")
             input_bins.append(binary[exec_env_provider].default)
             spec.append("{}@{}".format(binary[exec_env_provider].default.path, offset))
-        assembled_bins.append(
-            assemble_for_test(ctx, name, spec, input_bins, tc.tools.opentitantool),
-        )
-    return [DefaultInfo(files = depset(assembled_bins))]
+        img = assemble_for_test(ctx, name, spec, input_bins, tc.tools.opentitantool)
+        result.append(exec_env_provider(default = img, kind = "flash"))
+        assembled_bins.append(img)
+        ot_bin_env_info[exec_env_provider] = env
+    result.append(OpenTitanBinaryInfo(exec_env = ot_bin_env_info))
+    return result + [DefaultInfo(files = depset(assembled_bins))]
 
 opentitan_binary_assemble = rule(
     implementation = _opentitan_binary_assemble_impl,
@@ -530,4 +573,40 @@ opentitan_binary_assemble = rule(
         ),
     },
     toolchains = [LOCALTOOLS_TOOLCHAIN],
+)
+
+def _exec_env_filegroup(ctx):
+    files = {v: k for k, v in ctx.attr.files.items()}
+    exec_env = {v: k for k, v in ctx.attr.exec_env.items()}
+
+    fset = {k: 1 for k in files.keys()}
+    eset = {k: 1 for k in exec_env.keys()}
+
+    if fset != eset:
+        fail("The set of files and exec_envs must be matched: files =", fset.keys(), ", exec_env =", eset.keys())
+
+    result = []
+    for k in files.keys():
+        provider = exec_env[k][ExecEnvInfo].provider
+        f = files[k].files.to_list()
+        if len(f) != 1:
+            fail("files[{}] must supply exactly one file".format(k))
+        result.append(provider(default = f[0], kind = ctx.attr.kind))
+    return result
+
+exec_env_filegroup = rule(
+    implementation = _exec_env_filegroup,
+    attrs = {
+        "files": attr.label_keyed_string_dict(
+            allow_files = True,
+            mandatory = True,
+            doc = "Dictionary of files to exec_envs.",
+        ),
+        "exec_env": attr.label_keyed_string_dict(
+            providers = [ExecEnvInfo],
+            mandatory = True,
+            doc = "Dictionary of execution environments for this target.",
+        ),
+        "kind": attr.string(default = "flash", doc = "The kind of binary"),
+    },
 )
