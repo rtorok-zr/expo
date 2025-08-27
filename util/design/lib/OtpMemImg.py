@@ -195,13 +195,15 @@ def _int_to_hex_array(val: int, size: int, alignment: int) -> List[str]:
 class OtpMemImg(OtpMemMap):
 
     def __init__(self, lc_state_config, otp_mmap_config, img_config,
-                 data_perm):
+                 seed_cfg, data_perm):
         # Initialize memory map
-        super().__init__(otp_mmap_config)
+        otp_ctrl_seed = common.check_int(seed_cfg["otp_ctrl_seed"])
+        super().__init__(otp_mmap_config, otp_ctrl_seed)
 
         # Initialize the LC state and OTP memory map objects first, since
         # validation and image generation depends on them
-        self.lc_state = LcStEnc(lc_state_config)
+        lc_ctrl_seed = common.check_int(seed_cfg["lc_ctrl_seed"])
+        self.lc_state = LcStEnc(lc_state_config, lc_ctrl_seed)
 
         # Validate memory image configuration
         log.info('')
@@ -219,10 +221,7 @@ class OtpMemImg(OtpMemMap):
         if otp_width != secded_width:
             raise RuntimeError('OTP width and SECDED data width must be equal')
 
-        if 'seed' not in img_config:
-            raise RuntimeError('Missing seed in configuration.')
-
-        img_config['seed'] = common.check_int(img_config['seed'])
+        img_config["seed"] = seed_cfg["otp_img_seed"]
         log.info('Seed: {0:x}'.format(img_config['seed']))
         log.info('')
 
@@ -449,16 +448,19 @@ class OtpMemImg(OtpMemMap):
                     data_blocks[k] = _present_64bit_encrypt(
                         data_blocks[k], key['value'])
 
-        # Check if digest calculation is needed
+        # Check if digest calculation is needed.
+        # The digest is stored after the data. It is the last block of a
+        # partition when the partition is not zeroizable and the penultimate
+        # if it is.
+        digest_idx = len(data_blocks) - 2 if part['zeroizable'] else len(data_blocks) - 1
         if part['hw_digest']:
             # Make sure that this HW-governed digest has not been
             # overridden manually
-            if data_blocks[-1] != 0:
+            if data_blocks[digest_idx] != 0:
                 raise RuntimeError(
                     'Digest of partition {} cannot be overridden manually'.
                     format(part_name))
 
-            # Digest is stored in last block of a partition
             if part.setdefault('lock', False):
                 log.info('> Lock partition by computing digest')
                 # Digest constants at index 0 are used to compute the
@@ -466,8 +468,8 @@ class OtpMemImg(OtpMemMap):
                 iv = self.config['scrambling']['digests'][0]['iv_value']
                 const = self.config['scrambling']['digests'][0]['cnst_value']
 
-                data_blocks[-1] = _present_64bit_digest(
-                    data_blocks[0:-1], iv, const)
+                data_blocks[digest_idx] = _present_64bit_digest(
+                    data_blocks[0:digest_idx], iv, const)
             else:
                 log.info(
                     '> Partition is not locked, hence no digest is computed')

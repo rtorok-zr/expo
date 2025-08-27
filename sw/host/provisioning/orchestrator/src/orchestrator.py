@@ -114,7 +114,21 @@ def main(args_in):
         default="logs",
         help="Root directory to store log files under.",
     )
+    parser.add_argument(
+        "--cp-only",
+        action="store_true",
+        help="If set, only run CP stage (skips FT and database write).",
+    )
+    parser.add_argument(
+        "--db-path",
+        required=False,
+        help=
+        "Path to provisioning database. The database will be created if it does not exist.",
+    )
     args = parser.parse_args(args_in)
+
+    if not args.cp_only and args.db_path is None:
+        parser.error("--db-path is required when --cp-only is not provided")
 
     # All relative paths are relative to the runfiles directory.
     if args.runfiles_dir:
@@ -146,10 +160,6 @@ def main(args_in):
                                  capture_output=True,
                                  text=True).stdout.strip()
 
-    db_path = Path(args.log_dir) / db.DEFAULT_DB_FILENAME
-    db_handle = db.DB(db.DBConfig(db_path=db_path))
-    db.DeviceRecord.create_table(db_handle)
-
     # Run all provisioning flows.
     get_user_confirmation(sku_config, device_id, commit_hash, args)
     dut = OtDut(logs_root_dir=args.log_dir,
@@ -160,11 +170,18 @@ def main(args_in):
                 fpga=args.fpga,
                 require_confirmation=not args.non_interactive)
     dut.run_cp()
-    dut.run_ft()
+    if not args.cp_only:
+        dut.run_ft()
 
-    device_record = db.DeviceRecord.from_dut(dut)
-    device_record.upsert(db_handle)
-    logging.info(f"Added DeviceRecord to database: {device_record}")
+        db_path = Path(args.db_path)
+        db_handle = db.DB(db.DBConfig(db_path=db_path))
+        db.DeviceRecord.create_table(db_handle)
+
+        device_record = db.DeviceRecord.from_dut(dut)
+        device_record.upsert(db_handle)
+        logging.info(f"Added DeviceRecord to database: {device_record}")
+    else:
+        logging.info("FT skipped since --cp-only was provided")
 
 
 if __name__ == "__main__":

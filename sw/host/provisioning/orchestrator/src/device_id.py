@@ -6,8 +6,8 @@
 import struct
 from dataclasses import dataclass
 
-from sku_config import SkuConfig
 import util
+from sku_config import SkuConfig
 
 _RESERVED_WORD = 0
 
@@ -53,22 +53,22 @@ class DeviceIdentificationNumber:
 
     def to_int(self) -> int:
         din = 0
-        din |= self.wafer_y_coord << 44
-        din |= self.wafer_x_coord << 32
-        din |= self.wafer << 24
-        din |= self.lot << 12
-        din |= self.week << 4
+        din |= util.bcd_encode(self.wafer_y_coord) << 44
+        din |= util.bcd_encode(self.wafer_x_coord) << 32
+        din |= util.bcd_encode(self.wafer) << 24
+        din |= util.bcd_encode(self.lot) << 12
+        din |= util.bcd_encode(self.week) << 4
         din |= self.year
         return din
 
     @staticmethod
     def from_int(din: int) -> "DeviceIdentificationNumber":
-        year = din & 0xF
-        week = (din >> 4) & 0xFF
-        lot = (din >> 12) & 0xFFF
-        wafer = (din >> 24) & 0xFF
-        wafer_x_coord = (din >> 32) & 0xFFF
-        wafer_y_coord = (din >> 44) & 0xFFF
+        year = util.bcd_decode(din & 0xF)
+        week = util.bcd_decode((din >> 4) & 0xFF)
+        lot = util.bcd_decode((din >> 12) & 0xFFF)
+        wafer = util.bcd_decode((din >> 24) & 0xFF)
+        wafer_x_coord = util.bcd_decode((din >> 32) & 0xFFF)
+        wafer_y_coord = util.bcd_decode((din >> 44) & 0xFFF)
         return DeviceIdentificationNumber(year=year,
                                           week=week,
                                           lot=lot,

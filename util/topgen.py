@@ -5,7 +5,9 @@
 r"""Top Module Generator
 """
 import argparse
+from dataclasses import dataclass
 import logging as log
+import os
 import shutil
 import sys
 import tempfile
@@ -51,6 +53,7 @@ from topgen.resets import Resets
 from topgen.rust import TopGenRust
 from topgen.top import Top
 from topgen.typing import IpBlocksT
+from topgen.validate import validate_seed_cfg
 
 # Common header for generated files
 warnhdr = """//
@@ -62,14 +65,21 @@ genhdr = """// Copyright lowRISC contributors (OpenTitan project).
 // SPDX-License-Identifier: Apache-2.0
 """ + warnhdr
 
-GENCMD = ("// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson\n"
-          "// -o hw/{top_name}")
+GENCMD = ("// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson \\\n"
+          "//                -o hw/{top_name}/")
 
 SRCTREE_TOP = Path(__file__).parents[1].resolve()
 
 TOPGEN_TEMPLATE_PATH = SRCTREE_TOP / "util" / "topgen" / "templates"
 IP_RAW_PATH = SRCTREE_TOP / "hw" / "ip"
 IP_TEMPLATES_PATH = SRCTREE_TOP / "hw" / "ip_templates"
+
+
+@dataclass
+class Seed:
+    """Holds the seeds value along with its identifier"""
+    seed_mode: str
+    value: int
 
 
 class UniquifiedModules(object):
@@ -651,8 +661,7 @@ def _get_flash_ctrl_params(top: ConfigT) -> ParamsT:
 
 
 def _get_otp_ctrl_params(top: ConfigT,
-                         out_path: Path,
-                         seed: int = None) -> ParamsT:
+                         out_path: Path) -> ParamsT:
 
     def has_flash_keys(parts, path) -> bool:
         """Determines if the SECRET1 partition has flash key seeds.
@@ -675,7 +684,7 @@ def _get_otp_ctrl_params(top: ConfigT,
 
     """Returns the parameters extracted from the otp_mmap.hjson file."""
     otp_mmap_path = out_path / "data" / "otp" / "otp_ctrl_mmap.hjson"
-    otp_mmap = OtpMemMap.from_mmap_path(otp_mmap_path, seed).config
+    otp_mmap = OtpMemMap.from_mmap_path(otp_mmap_path, top["seed"]["otp_ctrl_seed"].value).config
     enable_flash_keys = has_flash_keys(otp_mmap["partitions"], otp_mmap_path)
     otp_ctrl = lib.find_module(top["module"], "otp_ctrl")
     ipgen_params = get_ipgen_params(otp_ctrl)
@@ -1295,17 +1304,40 @@ def dump_completecfg(cfg: ConfigT, out_path: Path) -> None:
     cfg_dir = out_path / "data/autogen"
     cfg_dir.mkdir(parents=True, exist_ok=True)
     genhjson_path = cfg_dir / f"{top_name}.gen.hjson"
+    seed_mode = cfg['seed']['topgen_seed'].seed_mode
+    secretgenhjson_path = cfg_dir / f"{top_name}.secrets.{seed_mode}.gen.hjson"
 
-    # Header for HJSON
-    gencmd = """//
-// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson \\
-//                -o hw/{top_name}/ \\
-//                --rnd_cnst_seed {seed}
-""".format(top_name=top_name, seed=cfg["rnd_cnst_seed"])
+    # Sanitize the top config and create separate files for secrets
+    dump_cfg = deepcopy(cfg)
 
-    genhjson_path.write_text(genhdr + gencmd +
-                             hjson.dumps(cfg, for_json=True, default=vars) +
+    # Seed goes into the secrets file
+    secret_cfg = {}
+    secret_cfg["seed"] = dump_cfg.pop("seed")
+    secret_cfg["module"] = []
+
+    # Filter params list for secret params and move that to the secrets file
+    for module in dump_cfg["module"]:
+        secret_params = [p for p in module["param_list"] if p.get("randtype")]
+        module["param_list"][:] = [p for p in module["param_list"] if not p.get("randtype")]
+
+        if secret_params:
+            # Pass a minimal set of information of a module such that tools that
+            # consume the .secret.gen.hjson have all necessary information
+            module_with_secret_params = {
+                "name": module["name"],
+                "type": module["type"],
+                "base_addrs": module["base_addrs"],
+                "memory": module["memory"],
+                "param_list": secret_params
+            }
+            secret_cfg["module"].append(module_with_secret_params)
+
+    genhjson_path.write_text(genhdr + GENCMD.format(top_name=top_name) + "\n" +
+                             hjson.dumps(dump_cfg, for_json=True, default=vars) +
                              '\n')
+    secretgenhjson_path.write_text(genhdr + GENCMD.format(top_name=top_name) + "\n" +
+                                   hjson.dumps(secret_cfg, for_json=True, default=vars) +
+                                   '\n')
 
 
 def main():
@@ -1314,6 +1346,10 @@ def main():
                         "-t",
                         required=True,
                         help="`top_{name}.hjson` file.")
+    parser.add_argument("--seedcfg",
+                        "-s",
+                        required=True,
+                        help="top_{name} seed configuration file.")
     parser.add_argument(
         "--outdir",
         "-o",
@@ -1405,12 +1441,6 @@ def main():
         nargs="+",
         help="Names or prefix for the DV register classes from which "
         "the register models are derived.")
-    # Generator options for compile time random netlist constants
-    parser.add_argument(
-        "--rnd_cnst_seed",
-        type=int,
-        metavar="<seed>",
-        help="Custom seed for RNG to compute netlist constants.")
     # Miscellaneous: only return the list of blocks and exit.
     parser.add_argument("--get_blocks",
                         default=False,
@@ -1459,6 +1489,17 @@ def main():
 
     topcfg = load_cfg(args.topcfg)
 
+    # Load the seed config from the separate configuration file
+    seed_cfg = load_cfg(args.seedcfg)
+    seed_error = validate_seed_cfg(topcfg, seed_cfg)
+    if seed_error:
+        sys.exit(1)
+
+    seed_mode = seed_cfg.pop("name")
+    topcfg["seed"] = {}
+    for seed_name, seed_value in seed_cfg.items():
+        topcfg["seed"][seed_name] = Seed(seed_mode, seed_value)
+
     # Add domain information to each module's reset_connections
     amend_reset_connections(topcfg)
 
@@ -1486,17 +1527,6 @@ def main():
 
     # Extract version stamp from file
     version_stamp = version_file.VersionInformation(args.version_stamp)
-
-    # Determine the seed for RNG for compile-time netlist constants.
-    # If specified, override the seed for random netlist constant computation.
-    if args.rnd_cnst_seed:
-        log.warning("Commandline override of rnd_cnst_seed with {}.".format(
-            args.rnd_cnst_seed))
-        topcfg["rnd_cnst_seed"] = args.rnd_cnst_seed
-    # Otherwise we make sure a seed exists in the HJSON config file.
-    elif "rnd_cnst_seed" not in topcfg:
-        log.error('Seed "rnd_cnst_seed" not found in configuration HJSON.')
-        exit(1)
 
     # The generation of ipgen modules needs to be carefully orchestrated to
     # avoid performing multiple passes when creating the complete top
@@ -1541,7 +1571,7 @@ def main():
     for pass_idx in range(maximum_passes):
         log.info("Generation pass {}".format(pass_idx + 1))
         # Use the same seed for each pass to have stable random constants.
-        SecurePrngFactory.create("topgen", topcfg["rnd_cnst_seed"])
+        SecurePrngFactory.create("topgen", topcfg["seed"]["topgen_seed"].value)
         # Insert the config file path of the HJSON to allow parsing files
         # relative the config directory
         cfg_copy["cfg_path"] = Path(args.topcfg).parent
@@ -1640,12 +1670,7 @@ def main():
                 fout.write(template_contents)
 
         # Header for SV files
-        gencmd_sv = warnhdr + """//
-// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson \\
-//                -o hw/{top_name}/ \\
-//                --rnd_cnst_seed \\
-//                {seed}
-""".format(top_name=top_name, seed=completecfg["rnd_cnst_seed"])
+        gencmd_sv = warnhdr + "//\n" + GENCMD.format(top_name=top_name) + "\n"
 
         # Top and chiplevel templates are top-specific
         top_template_path = SRCTREE_TOP / "hw" / top_name / "templates"
@@ -1666,9 +1691,65 @@ def main():
                             target=target)
 
         # compile-time random netlist constants
+        gencmd_rnd_cnst_sv = gencmd_sv + f"""//
+// File is generated based on the following seed configuration:
+//   {os.path.relpath(args.seedcfg, SRCTREE_TOP)}
+"""
+        topgen_seed = completecfg["seed"]["topgen_seed"]
+        seed_mode = topgen_seed.seed_mode
+        rnd_cnst_path = f"rtl/autogen/{seed_mode}"
+        rnd_cnst_file = f"{top_name}_rnd_cnst_pkg.sv"
+
+        # Determine the dependencies for the random netlist constant package. This construction
+        # depends on which modules are present in the top configuration and which require random
+        # netlist constants.
+        rnd_cnst_deps = []
+        RND_CNST_DEPENDENCIES = {
+            # ipgen-based modules (using template_type)
+            "flash_ctrl": [f"lowrisc:{topname}_ip:flash_ctrl"],
+            "otp_ctrl": [
+                f"lowrisc:{topname}_ip:otp_ctrl_top_specific_pkg",
+                "lowrisc:ip:otp_ctrl_pkg"
+            ],
+            "alert_handler": [f"lowrisc:{topname}_ip:alert_handler_pkg"],
+            "rv_core_ibex": ["lowrisc:ibex:ibex_pkg"],
+
+            # Direct IP modules (using type)
+            "lc_ctrl": ["lowrisc:ip:lc_ctrl_pkg"],
+            "sram_ctrl": ["lowrisc:ip:sram_ctrl_pkg"],
+            "aes": ["lowrisc:ip:aes"],
+            "kmac": ["lowrisc:ip:kmac_pkg"],
+            "otbn": ["lowrisc:ip:otbn_pkg"],
+            "keymgr": ["lowrisc:ip:keymgr_pkg"],
+            "csrng": ["lowrisc:ip:csrng_pkg"],
+        }
+
+        for m in completecfg["module"]:
+            template_type = m.get("template_type", "")
+            if template_type and template_type in RND_CNST_DEPENDENCIES:
+                deps = RND_CNST_DEPENDENCIES[template_type]
+                rnd_cnst_deps.extend(deps)
+                continue
+
+            module_type = m["type"]
+            if module_type in RND_CNST_DEPENDENCIES:
+                deps = RND_CNST_DEPENDENCIES[module_type]
+                rnd_cnst_deps.extend(deps)
+
+        # Ensure the dependencies are unique and sorted
+        rnd_cnst_deps = sorted(list(set(rnd_cnst_deps)))
+
         render_template(TOPGEN_TEMPLATE_PATH / "toplevel_rnd_cnst_pkg.sv.tpl",
-                        out_path / f"rtl/autogen/{top_name}_rnd_cnst_pkg.sv",
-                        gencmd=gencmd_sv)
+                        out_path / rnd_cnst_path / rnd_cnst_file,
+                        gencmd=gencmd_rnd_cnst_sv)
+        render_template(TOPGEN_TEMPLATE_PATH / "core_file.core.tpl",
+                        out_path / rnd_cnst_path /
+                        f"top_{topname}_{seed_mode}_rnd_cnst_pkg.core",
+                        package=f"lowrisc:{topname}_constants:{seed_mode}_rnd_cnst_pkg:0.1",
+                        description="Random netlist constant package",
+                        virtual_package="lowrisc:virtual_constants:rnd_cnst_pkg",
+                        dependencies=rnd_cnst_deps,
+                        files=[rnd_cnst_file])
 
         racl_config = completecfg.get('racl', DEFAULT_RACL_CONFIG)
         render_template(TOPGEN_TEMPLATE_PATH / 'top_racl_pkg.sv.tpl',
@@ -1685,18 +1766,24 @@ def main():
 
         if lib.find_module(topcfg["module"], "lc_ctrl"):
             lc_state_def_file = load_cfg(IP_RAW_PATH / "lc_ctrl" / "data" / "lc_ctrl_state.hjson")
-            lc_st_enc = LcStEnc(lc_state_def_file)
-            lc_st_enc_filename = "rtl/autogen/lc_ctrl_state_pkg.sv"
+            lc_seed = topcfg["seed"]["lc_ctrl_seed"]
+            lc_st_enc = LcStEnc(lc_state_def_file, lc_seed.value)
+            lc_st_enc_path = f"rtl/autogen/{lc_seed.seed_mode}"
+            lc_st_enc_file = "lc_ctrl_state_pkg.sv"
             render_template(IP_RAW_PATH / "lc_ctrl" / "rtl" / "lc_ctrl_state_pkg.sv.tpl",
-                            out_path / lc_st_enc_filename,
+                            out_path / lc_st_enc_path / lc_st_enc_file,
                             lc_st_enc=lc_st_enc)
             render_template(TOPGEN_TEMPLATE_PATH / "core_file.core.tpl",
-                            out_path / f"top_{topname}_lc_ctrl_state_pkg.core",
-                            package=f"lowrisc:{topname}_constants:lc_ctrl_state_pkg:0.1",
+                            out_path / lc_st_enc_path /
+                            f"top_{topname}_{lc_seed.seed_mode}_lc_ctrl_state_pkg.core",
+                            package=(
+                                f"lowrisc:{topname}_constants:"
+                                f"{lc_seed.seed_mode}_lc_ctrl_state_pkg:0.1"
+                            ),
                             description="LC Controller State Encoding Package",
                             virtual_package="lowrisc:virtual_ip:lc_ctrl_state_pkg",
                             dependencies=["lowrisc:prim:util"],
-                            files=[lc_st_enc_filename])
+                            files=[lc_st_enc_file])
 
         # The C / SV file needs some complex information, so we initialize this
         # object to store it.

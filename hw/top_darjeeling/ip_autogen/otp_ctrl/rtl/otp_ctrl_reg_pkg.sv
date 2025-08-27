@@ -228,61 +228,69 @@ package otp_ctrl_reg_pkg;
   parameter int ExtNvmAntireplayFreshnessCntOffset = 5064;
   parameter int ExtNvmAntireplayFreshnessCntSize = 1024;
   parameter int RomPatchOffset = 6088;
-  parameter int RomPatchSize = 9896;
+  parameter int RomPatchSize = 9864;
   parameter int RomPatchDataOffset = 6088;
   parameter int RomPatchDataSize = 9192;
-  parameter int RomPatchDigestOffset = 15976;
+  parameter int RomPatchDigestOffset = 15944;
   parameter int RomPatchDigestSize = 8;
-  parameter int HwCfg0Offset = 15984;
+  parameter int HwCfg0Offset = 15952;
   parameter int HwCfg0Size = 72;
-  parameter int DeviceIdOffset = 15984;
+  parameter int DeviceIdOffset = 15952;
   parameter int DeviceIdSize = 32;
-  parameter int ManufStateOffset = 16016;
+  parameter int ManufStateOffset = 15984;
   parameter int ManufStateSize = 32;
-  parameter int HwCfg0DigestOffset = 16048;
+  parameter int HwCfg0DigestOffset = 16016;
   parameter int HwCfg0DigestSize = 8;
-  parameter int HwCfg1Offset = 16056;
+  parameter int HwCfg1Offset = 16024;
   parameter int HwCfg1Size = 16;
-  parameter int SocDbgStateOffset = 16056;
+  parameter int SocDbgStateOffset = 16024;
   parameter int SocDbgStateSize = 4;
-  parameter int EnCsrngSwAppReadOffset = 16060;
+  parameter int EnCsrngSwAppReadOffset = 16028;
   parameter int EnCsrngSwAppReadSize = 1;
-  parameter int EnSramIfetchOffset = 16061;
+  parameter int EnSramIfetchOffset = 16029;
   parameter int EnSramIfetchSize = 1;
-  parameter int HwCfg1DigestOffset = 16064;
+  parameter int HwCfg1DigestOffset = 16032;
   parameter int HwCfg1DigestSize = 8;
-  parameter int Secret0Offset = 16072;
-  parameter int Secret0Size = 40;
-  parameter int TestUnlockTokenOffset = 16072;
+  parameter int Secret0Offset = 16040;
+  parameter int Secret0Size = 48;
+  parameter int TestUnlockTokenOffset = 16040;
   parameter int TestUnlockTokenSize = 16;
-  parameter int TestExitTokenOffset = 16088;
+  parameter int TestExitTokenOffset = 16056;
   parameter int TestExitTokenSize = 16;
-  parameter int Secret0DigestOffset = 16104;
+  parameter int Secret0DigestOffset = 16072;
   parameter int Secret0DigestSize = 8;
-  parameter int Secret1Offset = 16112;
-  parameter int Secret1Size = 24;
-  parameter int SramDataKeySeedOffset = 16112;
+  parameter int Secret0ZerOffset = 16080;
+  parameter int Secret0ZerSize = 8;
+  parameter int Secret1Offset = 16088;
+  parameter int Secret1Size = 32;
+  parameter int SramDataKeySeedOffset = 16088;
   parameter int SramDataKeySeedSize = 16;
-  parameter int Secret1DigestOffset = 16128;
+  parameter int Secret1DigestOffset = 16104;
   parameter int Secret1DigestSize = 8;
-  parameter int Secret2Offset = 16136;
-  parameter int Secret2Size = 120;
-  parameter int RmaTokenOffset = 16136;
+  parameter int Secret1ZerOffset = 16112;
+  parameter int Secret1ZerSize = 8;
+  parameter int Secret2Offset = 16120;
+  parameter int Secret2Size = 128;
+  parameter int RmaTokenOffset = 16120;
   parameter int RmaTokenSize = 16;
-  parameter int CreatorRootKeyShare0Offset = 16152;
+  parameter int CreatorRootKeyShare0Offset = 16136;
   parameter int CreatorRootKeyShare0Size = 32;
-  parameter int CreatorRootKeyShare1Offset = 16184;
+  parameter int CreatorRootKeyShare1Offset = 16168;
   parameter int CreatorRootKeyShare1Size = 32;
-  parameter int CreatorSeedOffset = 16216;
+  parameter int CreatorSeedOffset = 16200;
   parameter int CreatorSeedSize = 32;
-  parameter int Secret2DigestOffset = 16248;
+  parameter int Secret2DigestOffset = 16232;
   parameter int Secret2DigestSize = 8;
-  parameter int Secret3Offset = 16256;
-  parameter int Secret3Size = 40;
-  parameter int OwnerSeedOffset = 16256;
+  parameter int Secret2ZerOffset = 16240;
+  parameter int Secret2ZerSize = 8;
+  parameter int Secret3Offset = 16248;
+  parameter int Secret3Size = 48;
+  parameter int OwnerSeedOffset = 16248;
   parameter int OwnerSeedSize = 32;
-  parameter int Secret3DigestOffset = 16288;
+  parameter int Secret3DigestOffset = 16280;
   parameter int Secret3DigestSize = 8;
+  parameter int Secret3ZerOffset = 16288;
+  parameter int Secret3ZerSize = 8;
   parameter int LifeCycleOffset = 16296;
   parameter int LifeCycleSize = 88;
   parameter int LcTransitionCntOffset = 16296;
@@ -368,6 +376,10 @@ package otp_ctrl_reg_pkg;
   } otp_ctrl_reg2hw_direct_access_regwen_reg_t;
 
   typedef struct packed {
+    struct packed {
+      logic        q;
+      logic        qe;
+    } zeroize;
     struct packed {
       logic        q;
       logic        qe;
@@ -670,12 +682,12 @@ package otp_ctrl_reg_pkg;
 
   // Register -> HW type for core interface
   typedef struct packed {
-    otp_ctrl_reg2hw_intr_state_reg_t intr_state; // [218:217]
-    otp_ctrl_reg2hw_intr_enable_reg_t intr_enable; // [216:215]
-    otp_ctrl_reg2hw_intr_test_reg_t intr_test; // [214:211]
-    otp_ctrl_reg2hw_alert_test_reg_t alert_test; // [210:201]
-    otp_ctrl_reg2hw_direct_access_regwen_reg_t direct_access_regwen; // [200:199]
-    otp_ctrl_reg2hw_direct_access_cmd_reg_t direct_access_cmd; // [198:193]
+    otp_ctrl_reg2hw_intr_state_reg_t intr_state; // [220:219]
+    otp_ctrl_reg2hw_intr_enable_reg_t intr_enable; // [218:217]
+    otp_ctrl_reg2hw_intr_test_reg_t intr_test; // [216:213]
+    otp_ctrl_reg2hw_alert_test_reg_t alert_test; // [212:203]
+    otp_ctrl_reg2hw_direct_access_regwen_reg_t direct_access_regwen; // [202:201]
+    otp_ctrl_reg2hw_direct_access_cmd_reg_t direct_access_cmd; // [200:193]
     otp_ctrl_reg2hw_direct_access_address_reg_t direct_access_address; // [192:179]
     otp_ctrl_reg2hw_direct_access_wdata_mreg_t [1:0] direct_access_wdata; // [178:115]
     otp_ctrl_reg2hw_check_trigger_reg_t check_trigger; // [114:111]
@@ -924,10 +936,11 @@ package otp_ctrl_reg_pkg;
   parameter logic [2:0] OTP_CTRL_ERR_CODE_23_ERR_CODE_23_RESVAL = 3'h 0;
   parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_REGWEN_RESVAL = 1'h 1;
   parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_REGWEN_DIRECT_ACCESS_REGWEN_RESVAL = 1'h 1;
-  parameter logic [2:0] OTP_CTRL_DIRECT_ACCESS_CMD_RESVAL = 3'h 0;
+  parameter logic [3:0] OTP_CTRL_DIRECT_ACCESS_CMD_RESVAL = 4'h 0;
   parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_CMD_RD_RESVAL = 1'h 0;
   parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_CMD_WR_RESVAL = 1'h 0;
   parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_CMD_DIGEST_RESVAL = 1'h 0;
+  parameter logic [0:0] OTP_CTRL_DIRECT_ACCESS_CMD_ZEROIZE_RESVAL = 1'h 0;
   parameter logic [31:0] OTP_CTRL_DIRECT_ACCESS_RDATA_0_RESVAL = 32'h 0;
   parameter logic [31:0] OTP_CTRL_DIRECT_ACCESS_RDATA_0_DIRECT_ACCESS_RDATA_0_RESVAL = 32'h 0;
   parameter logic [31:0] OTP_CTRL_DIRECT_ACCESS_RDATA_1_RESVAL = 32'h 0;

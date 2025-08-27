@@ -77,7 +77,8 @@ fpga_cw310(
         "//hw/top_earlgrey/sw/dt:fpga_cw310",
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = "testing-not-supported",
 )
 
@@ -133,7 +134,8 @@ sim_qemu(
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     otp = "//hw/top_earlgrey/data/otp:img_rma",
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
 )
 
 sim_qemu(
@@ -226,7 +228,8 @@ fpga_cw305(
         "//sw/device/lib/arch:fpga_cw305",
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = "testing-not-supported",
 )
 
@@ -260,7 +263,8 @@ fpga_cw340(
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
     },
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = "testing-not-supported",
 )
 
@@ -394,7 +398,8 @@ silicon(
         "exit_success": DEFAULT_TEST_SUCCESS_MSG,
         "exit_failure": DEFAULT_TEST_FAILURE_MSG,
     },
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = """
         --exec="transport init"
         --exec="bootstrap --clear-uart=true {firmware}"
@@ -437,6 +442,7 @@ silicon(
         "//signing:test_keys": "//sw/device/silicon_creator/rom_ext/sival:rom_ext_dice_x509_fake_slot_a",
         "//conditions:default": "//sw/device/silicon_creator/rom_ext/sival:rom_ext_dice_x509_fake_slot_a",
     }),
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = """
         --exec="transport init"
         --exec="bootstrap --clear-uart=true {firmware}"
@@ -462,7 +468,8 @@ sim_verilator(
     ],
     linker_script = "//sw/device/lib/testing/test_framework:ottf_ld_silicon_creator_slot_a",
     otp = "//hw/top_earlgrey/data/otp:img_rma",
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
     test_cmd = "testing-not-supported",
 )
 
@@ -525,8 +532,8 @@ sim_dv(
     otp = "//hw/top_earlgrey/data/otp:img_rma",
     otp_data_perm = "//util/design/data:data_perm",
     otp_mmap = "//hw/top_earlgrey/data/otp:otp_ctrl_mmap.hjson",
-    otp_seed = "//util/design/data:otp_seed",
-    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.gen.hjson",
+    rom_scramble_config = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
+    seed_cfg = "//hw/top_earlgrey/data:top_earlgrey_seed.dev.hjson",
 )
 
 sim_dv(

@@ -50,10 +50,10 @@ otp_size_as_uint32 = otp_size_as_bytes // 4
       notes:              "",
     }
     {
-      version:            "2.0.0",
+      version:            "2.1.0",
       life_stage:         "L1",
-      design_stage:       "D3",
-      verification_stage: "V2S",
+      design_stage:       "D1",
+      verification_stage: "V1",
       dif_stage:          "S2",
       notes:              "",
     }
@@ -867,6 +867,14 @@ otp_size_as_uint32 = otp_size_as_bytes // 4
             desc: '''
                   Initiates the digest calculation and locking sequence for the partition specified by
                   !!DIRECT_ACCESS_ADDRESS.
+                  '''
+          }
+          { bits: "3",
+            name: "ZEROIZE",
+            desc: '''
+                  Initiates the zeroization sequence of location specified by !!DIRECT_ACCESS_ADDRESS.
+                  The command places the zeroized data into !!DIRECT_ACCESS_RDATA_0 and
+                  !!DIRECT_ACCESS_RDATA_1 (for 64bit partitions) if the execution is successful.
                   '''
           }
         ]
