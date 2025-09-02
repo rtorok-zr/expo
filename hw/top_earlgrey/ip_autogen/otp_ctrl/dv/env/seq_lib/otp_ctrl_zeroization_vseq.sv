@@ -11,8 +11,10 @@
 // partition is designated to be zeroized.
 // The last 8 bytes or any partition is the zeroizible field, hence ignore it when generating legal
 // addresses to zeroize.
-`define PART_CONTENT_RANGE(i) \
+`define PART_CONTENT_RANGE_ZER(i) \
     {[PartInfo[``i``].offset: PartInfo[``i``+1].offset - 9]}
+`define PART_CONTENT_RANGE(i) \
+    {[PartInfo[``i``].offset: PartInfo[``i``+1].offset - 1]}
 
 class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
   `uvm_object_utils(otp_ctrl_zeroization_vseq)
@@ -23,13 +25,13 @@ class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
   rand bit enable_trigger_checks;
 
   bit dut_init_completed;
+  bit trigger_routine_exit;
 
   constraint regwens_c {
     set_dai_regwen dist {0 :/ 8, 1 :/ 2};
   }
 
   constraint trigger_checks_c {
-    // enable_trigger_checks dist {0 :/ 4, 1 :/ 6};
     enable_trigger_checks == 0;
   }
 
@@ -112,6 +114,7 @@ class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
     this.part_idx.rand_mode(1);
 
     dut_init_completed = 0;
+    trigger_routine_exit = 0;
 
 
     fork
@@ -135,6 +138,9 @@ class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
                   part_idx.name, zeroized_offset(part_idx)), UVM_LOW);
           dai_zeroize(.addr(zeroized_offset(part_idx)));
           zeroized_partition[part_idx] = 1;
+          cfg.clk_rst_vif.wait_clks(5);
+          dai_rd(.addr(zeroized_offset(part_idx)), .rdata0(rdata0), .rdata1(rdata1),
+                 .skip_idle_check(1));
         end
 
         if (used_zeroized_addrs.exists(dai_addr)) begin
@@ -201,6 +207,8 @@ class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
     `uvm_info(`gfn, $sformatf("Delay before sequence termination"), UVM_LOW);
     cfg.clk_rst_vif.wait_clks(25);
     `uvm_info(`gfn, $sformatf("Done Delay"), UVM_LOW);
+
+    trigger_routine_exit = 1;
   endtask : body
 
   // This is an interrupt service routine that waits for interrupt and clears the following
@@ -251,6 +259,8 @@ class otp_ctrl_zeroization_vseq extends otp_ctrl_smoke_vseq;
     `uvm_info(`gfn, $sformatf("check_trigger_routine - Starting"), UVM_LOW);
 
     forever begin
+      if (trigger_routine_exit) break;
+
       cfg.clk_rst_vif.wait_clks($urandom_range(10, 50));
       if (cfg.under_reset) begin
         `uvm_info(`gfn, $sformatf("(CTR) - Wait until Otp Init is done"), UVM_LOW);

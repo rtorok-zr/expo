@@ -147,7 +147,7 @@
     }
 
     {
-      name: otp_ctrl_parallel_key_reqhw/ip_templates/otp_ctrl/dv/otp_ctrl_sim_cfg.hjson.tpl
+      name: otp_ctrl_parallel_key_req
       uvm_test_seq: otp_ctrl_parallel_key_req_vseq
     }
 
@@ -172,11 +172,13 @@
     {
       name: otp_ctrl_zeroization
       uvm_test_seq: otp_ctrl_zeroization_vseq
+      reseed: 250
     }
 
     {
       name: otp_ctrl_zeroization_with_checks
-      uvm_test_seq: otp_ctrl_zeroization_vseq
+      uvm_test_seq: otp_ctrl_zeroization_with_checks_vseq
+      reseed: 250
     }
   ]
 

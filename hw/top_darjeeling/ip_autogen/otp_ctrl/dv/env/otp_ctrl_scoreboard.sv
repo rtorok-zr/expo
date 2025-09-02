@@ -980,6 +980,9 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
               DaiZeroize: begin
                 bit[TL_AW-1:0] otp_addr = get_scb_otp_addr();
 
+                bit part_zero_addr_seen = 0;
+                otp_part_addr_cov_e offset_addr_cov;
+
                 `uvm_info(`gfn, $sformatf("Zeroizing Loc: Part Index :%s, PartZeroFieldAddr :%x",
                                       part_idx.name, PART_OTP_ZEROIZED_ADDRS[part_idx]), UVM_LOW);
                 `uvm_info(`gfn, $sformatf("Zeroizing Loc: otp_addr :%x, dai_addr :%x",
@@ -991,15 +994,23 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                 // the status and error registers
                 if (!part_is_zeroizable(int'(part_idx))) begin
                   predict_err(OtpDaiErrIdx, OtpAccessError);
+
+                  if (cfg.en_cov) begin
+                    cov.zr_dai_cmd_cg.sample(.part_idx(part_idx),
+                                             .zeroizable(0),
+                                             .offset_addr(OtpPartStartAddr));
+                  end
                 end else begin
                   bit [TL_DW*2-1:0] descrambled_val;
                   bit [TL_DW-1:0]   rdata_ret_val = '{default:1};
+
                   // Partition is zeroizable
                   if (otp_addr == PART_OTP_ZEROIZED_ADDRS[part_idx]) begin
                     `uvm_info(`gfn, $sformatf("%s is zeroized, Digest ignored in future checks",
                                         part_idx.name), UVM_LOW);
                     // Need to separate out individual partition digests and set the ignore flag.
                     ignore_digest_zero_chk[part_idx.name] = 1;
+                    part_zero_addr_seen = 1;
                   end
 
                   predict_no_err(OtpDaiErrIdx);
@@ -1026,9 +1037,14 @@ class otp_ctrl_scoreboard #(type CFG_T = otp_ctrl_env_cfg)
                   end
                 end
 
+                offset_addr_cov =  part_zero_addr_seen ? OtpPartZeroAddr
+                                 : is_digest(dai_addr) ? OtpPartDigestAddr
+                                 : ((dai_addr-PartInfo[part_idx].offset) == 0) ? OtpPartStartAddr
+                                 : OtpPartMiddleAddr;
+
                 if (cfg.en_cov) begin
                   cov.zr_dai_cmd_cg.sample(part_idx, part_is_zeroizable(int'(part_idx)),
-                                              (dai_addr-PartInfo[part_idx].offset));
+                                           offset_addr_cov);
                 end
               end
               default: begin

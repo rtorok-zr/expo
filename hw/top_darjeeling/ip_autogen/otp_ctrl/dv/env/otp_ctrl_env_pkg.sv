@@ -255,6 +255,13 @@ package otp_ctrl_env_pkg;
     DriveRandomly
   } port_drive_condition_e;
 
+  typedef enum bit [1:0] {
+    OtpPartStartAddr,
+    OtpPartMiddleAddr,
+    OtpPartDigestAddr,
+    OtpPartZeroAddr
+  } otp_part_addr_cov_e;
+
   typedef virtual otp_ctrl_if otp_ctrl_vif;
 
   parameter otp_err_code_e OTP_TERMINAL_ERRS[4] = {OtpMacroEccUncorrError,
