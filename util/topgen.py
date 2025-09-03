@@ -14,7 +14,7 @@ import tempfile
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from pathlib import Path
-from typing import Callable, Dict, List, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple
 
 import hjson
 import tlgen
@@ -60,10 +60,11 @@ warnhdr = """//
 // ------------------- W A R N I N G: A U T O - G E N E R A T E D   C O D E !! -------------------//
 // PLEASE DO NOT HAND-EDIT THIS FILE. IT HAS BEEN AUTO-GENERATED WITH THE FOLLOWING COMMAND:
 """
-genhdr = """// Copyright lowRISC contributors (OpenTitan project).
+lichdr = """// Copyright lowRISC contributors (OpenTitan project).
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
-""" + warnhdr
+"""
+genhdr = lichdr + warnhdr
 
 GENCMD = ("// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson \\\n"
           "//                -o hw/{top_name}/")
@@ -682,11 +683,74 @@ def _get_otp_ctrl_params(top: ConfigT,
                       and i["name"].lower().endswith("key_seed")]
         return len(flash_keys) > 0
 
+    def get_param(name: str, param_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        for p in param_list:
+            if p["name"] == name:
+                return p
+        raise ValueError(f"Parameter {name} not found in {param_list}")
+
     """Returns the parameters extracted from the otp_mmap.hjson file."""
     otp_mmap_path = out_path / "data" / "otp" / "otp_ctrl_mmap.hjson"
-    otp_mmap = OtpMemMap.from_mmap_path(otp_mmap_path, top["seed"]["otp_ctrl_seed"].value).config
+    otp_mmap = OtpMemMap.from_mmap_path(otp_mmap_path, generate_fresh_keys=True).config
     enable_flash_keys = has_flash_keys(otp_mmap["partitions"], otp_mmap_path)
     otp_ctrl = lib.find_module(top["module"], "otp_ctrl")
+
+    # Add the full and non-sanitized OTP map for a later dump to the secrets file.
+    otp_ctrl["otp_mmap"] = deepcopy(otp_mmap)
+
+    # Now inject the Key/digest/IV/PartInv into the "extdata" randtype params
+    # The param list might not be available on the first pass. Only propagate
+    # the values if the param list is available.
+    if "param_list" in otp_ctrl:
+        for i, key in enumerate(otp_mmap["scrambling"]["keys"]):
+            p = get_param(f"RndCnstScrmblKey{i}", otp_ctrl["param_list"])
+            p["default"] = hex(int(key["value"]))
+            key["value"] = "<random>"
+
+        for i, digest in enumerate(otp_mmap["scrambling"]["digests"]):
+            p = get_param(f"RndCnstDigestConst{i}", otp_ctrl["param_list"])
+            p["default"] = hex(int(digest["cnst_value"]))
+            digest["cnst_value"] = "<random>"
+
+        for i, digest in enumerate(otp_mmap["scrambling"]["digests"]):
+            p = get_param(f"RndCnstDigestIV{i}", otp_ctrl["param_list"])
+            p["default"] = hex(int(digest["iv_value"]))
+            digest["iv_value"] = "<random>"
+
+        # Parse the part_inv_default data from the OTP map into a simple dict that we can use
+        # when rendering the random constant package.
+        part_inv_data = []
+        rev_partitions = otp_mmap["partitions"][::-1]
+        offset = int(rev_partitions[0]["offset"]) + int(rev_partitions[0]["size"])
+        for part in rev_partitions:
+            part_data = {
+                "size": part["size"] * 8,
+                "items": []
+            }
+            for item in part["items"][::-1]:
+                if offset != item["offset"] + item["size"]:
+                    part_data["items"].append({
+                        "comment": "unallocated space",
+                        "size": (offset - item["size"] - item["offset"]) * 8,
+                        "inv_default": 0
+                    })
+                    offset = item["offset"] + item["size"]
+                part_data["items"].append({
+                    "size": item["size"] * 8,
+                    "inv_default": item["inv_default"]
+                })
+                # Sanitize the seed dependent inv_default values.
+                if item["inv_default"] != 0:
+                    item["inv_default"] = "<random>"
+                offset -= item["size"]
+            part_inv_data.append(part_data)
+
+        p = get_param("RndCnstPartInvDefault", otp_ctrl["param_list"])
+        p["default"] = part_inv_data
+
+        # Add the sanitized OTP map to the otp_ctrl module for a general dump.
+        otp_ctrl["sanitized_otp_mmap"] = otp_mmap
+
     ipgen_params = get_ipgen_params(otp_ctrl)
     ipgen_params.update({
         "otp_mmap": otp_mmap,
@@ -1330,6 +1394,12 @@ def dump_completecfg(cfg: ConfigT, out_path: Path) -> None:
                 "memory": module["memory"],
                 "param_list": secret_params
             }
+            if module.get("template_type"):
+                module_with_secret_params["template_type"] = module["template_type"]
+            # OTP map contains secret parameters, so we need to pass it to the
+            # secrets file.
+            if module.get("otp_mmap"):
+                module_with_secret_params["otp_mmap"] = module.pop("otp_mmap")
             secret_cfg["module"].append(module_with_secret_params)
 
     genhjson_path.write_text(genhdr + GENCMD.format(top_name=top_name) + "\n" +
@@ -1626,6 +1696,9 @@ def main():
         for m in completecfg["module"] if lib.is_top_reggen(m)
     }
     generate_top_only(top_only_ips, out_path, top_name, args.hjson_path)
+    # Re-set the seed because generate_full_ipgens uses the same RNG again from the beginning
+    SecurePrngFactory.create("topgen", topcfg["seed"]["topgen_seed"].value)
+
     generate_full_ipgens(args, completecfg, name_to_block, alias_cfgs,
                          cfg_path, out_path)
 
@@ -1698,7 +1771,9 @@ def main():
         topgen_seed = completecfg["seed"]["topgen_seed"]
         seed_mode = topgen_seed.seed_mode
         rnd_cnst_path = f"rtl/autogen/{seed_mode}"
-        rnd_cnst_file = f"{top_name}_rnd_cnst_pkg.sv"
+        rnd_cnst_file = f"{top_name}_rnd_cnst_pkg"
+        rnd_cnst_sv_file = f"{rnd_cnst_file}.sv"
+        rnd_cnst_vbl_file = f"{rnd_cnst_file}.vbl"
 
         # Determine the dependencies for the random netlist constant package. This construction
         # depends on which modules are present in the top configuration and which require random
@@ -1740,16 +1815,24 @@ def main():
         rnd_cnst_deps = sorted(list(set(rnd_cnst_deps)))
 
         render_template(TOPGEN_TEMPLATE_PATH / "toplevel_rnd_cnst_pkg.sv.tpl",
-                        out_path / rnd_cnst_path / rnd_cnst_file,
+                        out_path / rnd_cnst_path / rnd_cnst_sv_file,
                         gencmd=gencmd_rnd_cnst_sv)
+
+        # Create verible waiver file for the random constant package for long lines.
+        rnd_cnst_vbl_file_path = out_path / rnd_cnst_path / f"{rnd_cnst_file}.vbl"
+        with rnd_cnst_vbl_file_path.open(mode="w", encoding="UTF-8") as fout:
+            fout.write((lichdr + gencmd_rnd_cnst_sv).replace("//", "#") + f"""
+# These lines are too long due to templating
+waive --rule=line-length --location="{rnd_cnst_sv_file}"
+""")
         render_template(TOPGEN_TEMPLATE_PATH / "core_file.core.tpl",
-                        out_path / rnd_cnst_path /
-                        f"top_{topname}_{seed_mode}_rnd_cnst_pkg.core",
+                        out_path / rnd_cnst_path / f"top_{topname}_{seed_mode}_rnd_cnst_pkg.core",
                         package=f"lowrisc:{topname}_constants:{seed_mode}_rnd_cnst_pkg:0.1",
                         description="Random netlist constant package",
                         virtual_package="lowrisc:virtual_constants:rnd_cnst_pkg",
                         dependencies=rnd_cnst_deps,
-                        files=[rnd_cnst_file])
+                        files=[rnd_cnst_sv_file],
+                        files_veriblelint_waiver=rnd_cnst_vbl_file)
 
         racl_config = completecfg.get('racl', DEFAULT_RACL_CONFIG)
         render_template(TOPGEN_TEMPLATE_PATH / 'top_racl_pkg.sv.tpl',

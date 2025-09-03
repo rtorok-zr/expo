@@ -48,7 +48,9 @@ module tb;
   entropy_src #(
     .RngBusWidth(`RNG_BUS_WIDTH),
     .RngBusBitSelWidth(`RNG_BUS_BIT_SEL_WIDTH),
-    .HealthTestWindowWidth(16 + `RNG_BUS_BIT_SEL_WIDTH)
+    .HealthTestWindowWidth(16 + `RNG_BUS_BIT_SEL_WIDTH),
+    .EnCsAesHaltReqIf(`EN_CS_AES_HALT_REQ_IF),
+    .DistrFifoDepth(`DISTR_FIFO_DEPTH)
   ) dut (
     .clk_i                        (clk        ),
     .rst_ni                       (rst_n      ),

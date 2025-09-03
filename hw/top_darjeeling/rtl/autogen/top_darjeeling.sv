@@ -331,7 +331,8 @@ module top_darjeeling #(
   localparam int SramCtrlRetAonOutstanding = 2;
   // local parameters for entropy_src
   localparam int EntropySrcEsFifoDepth = 3;
-  localparam int unsigned EntropySrcDistrFifoDepth = 26;
+  localparam bit EntropySrcEnCsAesHaltReqIf = 0;
+  localparam int unsigned EntropySrcDistrFifoDepth = 11;
   // local parameters for sram_ctrl_main
   localparam int SramCtrlMainOutstanding = 2;
   // local parameters for sram_ctrl_mbox
@@ -1215,7 +1216,16 @@ module top_darjeeling #(
     .AlertSkewCycles(top_pkg::AlertSkewCycles),
     .RndCnstLfsrSeed(RndCnstOtpCtrlLfsrSeed),
     .RndCnstLfsrPerm(RndCnstOtpCtrlLfsrPerm),
-    .RndCnstScrmblKeyInit(RndCnstOtpCtrlScrmblKeyInit)
+    .RndCnstScrmblKeyInit(RndCnstOtpCtrlScrmblKeyInit),
+    .RndCnstScrmblKey0(RndCnstOtpCtrlScrmblKey0),
+    .RndCnstScrmblKey1(RndCnstOtpCtrlScrmblKey1),
+    .RndCnstScrmblKey2(RndCnstOtpCtrlScrmblKey2),
+    .RndCnstScrmblKey3(RndCnstOtpCtrlScrmblKey3),
+    .RndCnstDigestConst0(RndCnstOtpCtrlDigestConst0),
+    .RndCnstDigestConst1(RndCnstOtpCtrlDigestConst1),
+    .RndCnstDigestIV0(RndCnstOtpCtrlDigestIV0),
+    .RndCnstDigestIV1(RndCnstOtpCtrlDigestIV1),
+    .RndCnstPartInvDefault(RndCnstOtpCtrlPartInvDefault)
   ) u_otp_ctrl (
 
       // Interrupt
@@ -2083,6 +2093,7 @@ module top_darjeeling #(
     .RngBusBitSelWidth(EntropySrcRngBusBitSelWidth),
     .HealthTestWindowWidth(EntropySrcHealthTestWindowWidth),
     .EsFifoDepth(EntropySrcEsFifoDepth),
+    .EnCsAesHaltReqIf(EntropySrcEnCsAesHaltReqIf),
     .DistrFifoDepth(EntropySrcDistrFifoDepth),
     .Stub(EntropySrcStub)
   ) u_entropy_src (

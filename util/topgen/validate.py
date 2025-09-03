@@ -90,7 +90,7 @@ top_added = {
     'racl': ['g', 'the expansion of the racl_config file'],
     'wakeups':
     ['l', 'list of wakeup requests each holding name, width, and module'],
-    'cfg_path': ['s', 'Path to the folder of the toplevel HJSON file']
+    'cfg_path': ['s', 'Path to the folder of the toplevel HJSON file'],
 }
 
 # Required/optional field in top seeds hjson
@@ -100,7 +100,6 @@ top_seed_required = {
 }
 
 top_seed_optional = {
-    'otp_ctrl_seed': ['int', "Seed for otp_ctrl generated random netlist constants"],
     'otp_img_seed': ['int', "Seed for OTP image generation"],
     'lc_ctrl_seed': ['int', "Seed for lc_ctrl generated random netlist constants"],
 }
@@ -310,6 +309,7 @@ module_optional = {
     'plic': ['s', 'Interrupt controller managing this module\'s interrupts'],
     'targets': ['l', 'Optional list of targets for this PLIC'],
     'alert_handler': ['s', 'Alert handler managing this module\'s alerts'],
+    "otp_map": ["g", "OTP Map information for OTP Ctrl"]
 }
 
 module_added = {
@@ -317,6 +317,8 @@ module_added = {
     'incoming_interrupt': ['g', 'Parsed incoming interrupts'],
     'inter_signal_list': ['l', 'generated signal information'],
     'param_list': ['l', 'list of parameters'],
+    "otp_mmap": ["g", "Full OTP memory map configuration with secret parameters"],
+    "sanitized_otp_mmap": ["g", "OTP memory map configuration without secret parameters"]
 }
 
 memory_required = {
@@ -1264,7 +1266,6 @@ def validate_seed_cfg(top: ConfigT, seed_cfg: ConfigT):
     # Validate seed information is here. First determine the required keys depending on the
     # top configuration
     if find_module(top["module"], "otp_ctrl"):
-        top_seed_required["otp_ctrl_seed"] = top_seed_optional["otp_ctrl_seed"]
         top_seed_required["otp_img_seed"] = top_seed_optional["otp_img_seed"]
     if find_module(top["module"], "lc_ctrl"):
         top_seed_required["lc_ctrl_seed"] = top_seed_optional["lc_ctrl_seed"]
