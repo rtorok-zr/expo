@@ -51,7 +51,6 @@ dual_cc_library(
         device = [
             "//hw/top:alert_handler_c_regs",
             "//hw/top:otp_ctrl_c_regs",
-            "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         ],
         host = [
             "//sw/device/lib/base:global_mock",
@@ -61,6 +60,7 @@ dual_cc_library(
         shared = [
             ":lifecycle",
             ":otp",
+            "//hw/top:dt",
             "//sw/device/lib/base:abs_mmio",
             "//sw/device/lib/base:macros",
             "//sw/device/lib/base:memory",
@@ -146,6 +146,7 @@ dual_cc_library(
         host = ["mock_flash_ctrl.h"],
         shared = ["flash_ctrl.h"],
     ),
+    visibility = ["//visibility:public"],
     deps = dual_inputs(
         device = [
             "//hw/top:otp_ctrl_c_regs",
@@ -279,8 +280,8 @@ cc_library(
     srcs = ["keymgr.c"],
     hdrs = ["keymgr.h"],
     deps = [
+        "//hw/top:dt",
         "//hw/top:keymgr_c_regs",
-        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",
         "//sw/device/lib/base:macros",
         "//sw/device/lib/runtime:hart",
@@ -295,6 +296,7 @@ cc_test(
     srcs = ["keymgr_unittest.cc"],
     deps = [
         ":keymgr",
+        "//hw/top:dt",
         "//sw/device/silicon_creator/testing:rom_test",
         "@googletest//:gtest_main",
     ],
@@ -579,6 +581,7 @@ dual_cc_library(
     deps = dual_inputs(
         device = [
             ":otp",
+            "//hw/top:dt",
             "//sw/device/lib/arch:boot_stage",
             "//sw/device/lib/base:csr",
             "//sw/device/lib/base:abs_mmio",
@@ -853,8 +856,8 @@ cc_library(
     hdrs = ["pwrmgr.h"],
     deps = [
         ":ibex",
+        "//hw/top:dt",
         "//hw/top:pwrmgr_c_regs",
-        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",
         "//sw/device/silicon_creator/lib/base:sec_mmio",
     ],

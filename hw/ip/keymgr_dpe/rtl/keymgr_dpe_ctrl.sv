@@ -146,11 +146,12 @@ module keymgr_dpe_ctrl
   logic fsm_at_disabled;
   logic fsm_at_invalid;
 
-  logic adv_req, gen_req, erase_req, dis_req;
+  logic adv_req, gen_req, erase_req, dis_req, load_req;
   assign adv_req   = op_req & (op_i == OpDpeAdvance);
   assign gen_req   = op_req & gen_key_op;
   assign erase_req = op_req & (op_i == OpDpeErase);
   assign dis_req   = op_req & (op_i == OpDpeDisable);
+  assign load_req  = op_req & (op_i == OpDpeLoadRootKey);
 
   ///////////////////////////
   //  interaction between operation fsm and software
@@ -204,6 +205,7 @@ module keymgr_dpe_ctrl
                          op_update & dis_req                    ? SlotWipeInternalOnly :
                          op_update & (op_err | fsm_at_disabled) ? SlotUpdateIdle       :
                          op_update & adv_req                    ? SlotLoadFromKmac     :
+                         op_update & load_req                   ? SlotLoadRoot         :
                          op_update & erase_req                  ? SlotErase            :
                          SlotUpdateIdle;
 
@@ -269,10 +271,8 @@ module keymgr_dpe_ctrl
     end
   end
 
-  logic [DpeNumBootStagesWidth-1:0] active_slot_boot_stage;
   keymgr_dpe_policy_t active_slot_policy;
   assign active_key_slot_o      = key_slots_q[slot_src_sel_i];
-  assign active_slot_boot_stage = active_key_slot_o.boot_stage;
   assign active_slot_policy     = active_key_slot_o.key_policy;
 
   assign data_valid_o = op_ack & gen_key_op & ~invalid_op;
@@ -294,11 +294,10 @@ module keymgr_dpe_ctrl
       // keymgr slots, so that the sensitive secret values that loaded later are protected against
       // simple Hamming weight leakages.
       SlotDestRandomize: begin
+        key_slots_d[slot_dst_sel_i] = '0;
         for (int j = 0; j < Shares; j++) begin
-          key_slots_d[slot_dst_sel_i] = '0;
-          // TODO(#384): Initialize pre-UDS value with equal randomness for SCA resistance
-          // It should look like below:
-          // key_slots_d[i].key[j][cnt*EntropyWidth +: EntropyWidth] = entropy_i[0];
+          // Initialize pre-UDS value with equal randomness for SCA resistance
+          key_slots_d[slot_dst_sel_i].key[j][cnt*EntropyWidth +: EntropyWidth] = entropy_i[0];
         end
       end
 
@@ -306,7 +305,7 @@ module keymgr_dpe_ctrl
       // secret (UDS) that comes from peripheral OTP port.
       SlotLoadRoot: begin
         key_slots_d[slot_dst_sel_i].valid = 1;
-        key_slots_d[slot_dst_sel_i].boot_stage = 0;
+        key_slots_d[slot_dst_sel_i].boot_stage = BootStageCreator;
         key_slots_d[slot_dst_sel_i].key[0] ^= root_key_i.key[0];
         key_slots_d[slot_dst_sel_i].key[1] ^= root_key_i.key[1];
         key_slots_d[slot_dst_sel_i].max_key_version = max_key_version_i;
@@ -320,7 +319,8 @@ module keymgr_dpe_ctrl
         key_slots_d[slot_dst_sel_i].valid = 1;
         key_slots_d[slot_dst_sel_i].key = kmac_data_i;
         key_slots_d[slot_dst_sel_i].max_key_version = max_key_version_i;
-        key_slots_d[slot_dst_sel_i].boot_stage = active_slot_boot_stage + 1;
+        key_slots_d[slot_dst_sel_i].boot_stage =
+          (active_key_slot_o.boot_stage == BootStageCreator) ? BootStageOwner : BootStageRuntime;
         key_slots_d[slot_dst_sel_i].key_policy = slot_policy_i;
       end
 
@@ -332,10 +332,10 @@ module keymgr_dpe_ctrl
       // This is different than `SlotWipeAll`, which removes all secrets inside keymgr_DPE when
       // a fault is observed.
       SlotErase: begin
+        key_slots_d[slot_dst_sel_i] = '0;
         for (int j = 0; j < Shares; j++) begin
-          key_slots_d[slot_dst_sel_i] = '0;
-          // TODO(#384): Instead of clearing with '0, use randomness.
-          key_slots_d[slot_dst_sel_i].key[j][cnt*EntropyWidth+:EntropyWidth] = '0;
+          // Clear all shares with equal randomness for SCA resistance
+          key_slots_d[slot_dst_sel_i].key[j][cnt*EntropyWidth +: EntropyWidth] = entropy_i[0];
         end
       end
 
@@ -396,6 +396,7 @@ module keymgr_dpe_ctrl
   logic invalid_advance;
   logic invalid_erase;
   logic invalid_gen;
+  logic invalid_load;
   // TODO(#384): Make sure that:
   // 1) inv_state is correctly computed
   // 2) inv_state is correctly consumed by FSM
@@ -515,7 +516,11 @@ module keymgr_dpe_ctrl
         op_req = op_start_i;
 
         // This is the operational state, most operations are valid (modulo policy violations).
-        invalid_op = invalid_advance | invalid_erase | invalid_gen | (~en_i & op_start_i);
+        invalid_op = invalid_advance |
+                     invalid_erase   |
+                     invalid_gen     |
+                     invalid_load    |
+                     (~en_i & op_start_i);
 
         // Given that the root key was latched by an earlier FSM state, we need to take care of
         // clearing the sensitive root key.
@@ -608,6 +613,7 @@ module keymgr_dpe_ctrl
     .gen_req_i(gen_req),
     .erase_req_i(erase_req),
     .dis_req_i(dis_req),
+    .load_req_i(load_req),
     .op_ack_o(op_ack),
     .op_busy_o(op_busy),
     .op_update_o(op_update),
@@ -649,9 +655,6 @@ module keymgr_dpe_ctrl
   logic invalid_allow_child;
   assign invalid_allow_child = ~active_slot_policy.allow_child;
 
-  logic invalid_max_boot_stage;
-  assign invalid_max_boot_stage = active_slot_boot_stage >= DpeNumBootStages - 1;
-
   // Check source validity
   logic invalid_src_slot;
   assign invalid_src_slot = ~active_key_slot_o.valid;
@@ -665,19 +668,21 @@ module keymgr_dpe_ctrl
                            (slot_src_sel_i == slot_dst_sel_i | destination_slot_valid) :
                            (slot_src_sel_i != slot_dst_sel_i);
 
-  assign invalid_advance = adv_req & (invalid_allow_child | invalid_max_boot_stage |
-                                      invalid_src_slot | invalid_retain_parent);
+  assign invalid_advance = adv_req & (invalid_allow_child |
+                                      invalid_src_slot    |
+                                      invalid_retain_parent);
 
   assign invalid_erase = erase_req & ~destination_slot_valid;
 
   assign invalid_gen = gen_req & (~active_key_slot_o.valid | ~key_version_vld_o);
 
+  assign invalid_load = load_req & (~root_key_i.valid | destination_slot_valid);
+
   // This is similar to `invalid_advance` except that it does not depend on a incoming request.
   // The outer module uses `invalid_advance_o` to invalidate KMAC msg payload, when the advance
   // operation is not valid. It is better be loose here and ask to invalidate even when there is no
   // advance request.
-  assign invalid_advance_o = invalid_allow_child | invalid_max_boot_stage |
-                                      invalid_src_slot | invalid_retain_parent;
+  assign invalid_advance_o = invalid_allow_child | invalid_src_slot | invalid_retain_parent;
 
   // Exportable DPE is not yet implemented, so mark it unused for lint.
   logic unused_exportable_bit;

@@ -5,7 +5,6 @@
 
 import argparse
 import logging
-import os
 import shlex
 import subprocess
 import sys
@@ -14,10 +13,10 @@ from pathlib import Path
 import hjson
 
 import db
-from device_id import DeviceId, DeviceIdentificationNumber
+from device_id import DeviceId
 from ot_dut import OtDut
 from sku_config import SkuConfig
-from util import confirm, parse_hexstring_to_int
+from util import confirm, parse_hexstring_to_int, resolve_runfile
 
 
 def get_user_confirmation(
@@ -95,7 +94,7 @@ def main(args_in):
     )
     parser.add_argument(
         "--fpga",
-        choices=["hyper310", "cw340"],
+        choices=["cw310", "cw340"],
         help="Run flow on FPGA (instead of silicon).",
     )
     parser.add_argument(
@@ -103,11 +102,6 @@ def main(args_in):
         action="store_true",
         default=False,
         help="Skip all non-required user confirmations.",
-    )
-    parser.add_argument(
-        "--runfiles-dir",
-        type=str,
-        help="Runfiles directory to use for provisioning.",
     )
     parser.add_argument(
         "--log-dir",
@@ -130,26 +124,16 @@ def main(args_in):
     if not args.cp_only and args.db_path is None:
         parser.error("--db-path is required when --cp-only is not provided")
 
-    # All relative paths are relative to the runfiles directory.
-    if args.runfiles_dir:
-        os.chdir(args.runfiles_dir)
-
     # Load and validate a SKU configuration file.
+    sku_config_path = resolve_runfile(args.sku_config)
     sku_config_args = {}
-    with open(args.sku_config, "r") as fp:
+    with open(sku_config_path, "r") as fp:
         sku_config_args = hjson.load(fp)
     sku_config = SkuConfig(**sku_config_args)
 
-    # Create a (unique) device identification number and device ID.
-    # TODO: update this by extracting data from the device during CP.
-    din = DeviceIdentificationNumber(
-        year=0,
-        week=0,
-        lot=0,
-        wafer=0,
-        wafer_x_coord=0,
-        wafer_y_coord=0,
-    )
+    # The device identification number is determined during CP by extracting data
+    # from the device.
+    din = None
     device_id = DeviceId(sku_config, din)
 
     # TODO: Setup remote and/or local DV connections.
@@ -170,18 +154,19 @@ def main(args_in):
                 fpga=args.fpga,
                 require_confirmation=not args.non_interactive)
     dut.run_cp()
-    if not args.cp_only:
-        dut.run_ft()
-
-        db_path = Path(args.db_path)
-        db_handle = db.DB(db.DBConfig(db_path=db_path))
-        db.DeviceRecord.create_table(db_handle)
-
-        device_record = db.DeviceRecord.from_dut(dut)
-        device_record.upsert(db_handle)
-        logging.info(f"Added DeviceRecord to database: {device_record}")
-    else:
+    if args.cp_only:
         logging.info("FT skipped since --cp-only was provided")
+        return
+
+    dut.run_ft()
+
+    db_path = Path(args.db_path)
+    db_handle = db.DB(db.DBConfig(db_path=db_path))
+    db.DeviceRecord.create_table(db_handle)
+
+    device_record = db.DeviceRecord.from_dut(dut)
+    device_record.upsert(db_handle)
+    logging.info(f"Added DeviceRecord to database: {device_record}")
 
 
 if __name__ == "__main__":

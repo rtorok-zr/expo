@@ -290,7 +290,7 @@ module entropy_src_core import entropy_src_pkg::*; #(
   logic                    bucket_bypass_threshold_wr;
   logic [HalfRegWidth-1:0] bucket_threshold;
   logic [NumBucketHtInst-1:0][HalfRegWidth-1:0] bucket_event_cnt;
-  logic [HalfRegWidth-1:0] bucket_event_cnt_combined;
+  logic [HalfRegWidth-1:0] bucket_event_cnt_max;
   logic [HalfRegWidth-1:0] bucket_event_hwm_fips;
   logic [HalfRegWidth-1:0] bucket_event_hwm_bypass;
   logic [FullRegWidth-1:0] bucket_total_fails;
@@ -949,16 +949,19 @@ module entropy_src_core import entropy_src_pkg::*; #(
   assign fifo_write_err_sum =
          sfifo_esrng_err[2] ||
          sfifo_observe_err[2] ||
+         sfifo_distr_err[2] ||
          sfifo_esfinal_err[2] ||
          err_code_test_bit[28];
   assign fifo_read_err_sum =
          sfifo_esrng_err[1] ||
          sfifo_observe_err[1] ||
+         sfifo_distr_err[1] ||
          sfifo_esfinal_err[1] ||
          err_code_test_bit[29];
   assign fifo_status_err_sum =
          sfifo_esrng_err[0] ||
          sfifo_observe_err[0] ||
+         sfifo_distr_err[0] ||
          sfifo_esfinal_err[0] ||
          err_code_test_bit[30];
 
@@ -1894,13 +1897,30 @@ module entropy_src_core import entropy_src_pkg::*; #(
     );
   end
 
-  // Add all partial errors to be consumed by the watermark registers
+  // Extract the maximum bin counter value from all NumBucketHtInst groups of BucketHtDataWidth
+  // channels.
+  if (NumBucketHtInst > 1) begin : gen_bucket_max_tree
+    prim_max_tree #(
+      .NumSrc(NumBucketHtInst),
+      .Width(HalfRegWidth)
+    ) u_prim_max_tree_bin_cntr_max (
+      .clk_i,
+      .rst_ni,
+      .values_i   (bucket_event_cnt),
+      .valid_i    ({NumBucketHtInst{1'b1}}),
+      .max_value_o(bucket_event_cnt_max),
+      .max_idx_o  (),
+      .max_valid_o()
+    );
+  end else begin : gen_no_bucket_max_tree
+    assign bucket_event_cnt_max = bucket_event_cnt[0];
+  end
+
+  // Add the failure pulses from all NumBucketHtInst groups.
   always_comb begin
-    bucket_event_cnt_combined = 0;
-    bucket_fail_pulse_step    = 0;
+    bucket_fail_pulse_step = 0;
     for (int i = 0; i < NumBucketHtInst; i++) begin
-      bucket_event_cnt_combined += bucket_event_cnt[i];
-      bucket_fail_pulse_step    += bucket_fail_pulse[i];
+      bucket_fail_pulse_step += bucket_fail_pulse[i];
     end
   end
 
@@ -1925,7 +1945,7 @@ module entropy_src_core import entropy_src_pkg::*; #(
     .rst_ni              (rst_ni),
     .clear_i             (health_test_clr),
     .event_i             (health_test_done_pulse && !es_bypass_mode),
-    .value_i             (bucket_event_cnt_combined),
+    .value_i             (bucket_event_cnt_max),
     .value_o             (bucket_event_hwm_fips)
   );
 
@@ -1937,7 +1957,7 @@ module entropy_src_core import entropy_src_pkg::*; #(
     .rst_ni              (rst_ni),
     .clear_i             (health_test_clr),
     .event_i             (health_test_done_pulse && es_bypass_mode),
-    .value_i             (bucket_event_cnt_combined),
+    .value_i             (bucket_event_cnt_max),
     .value_o             (bucket_event_hwm_bypass)
   );
 

@@ -20,20 +20,6 @@ from lib.LcStEnc import LcStEnc
 from lib.OtpMemMap import OtpMemMap
 from lib.Present import Present
 
-_OTP_SW_SKIP_FROM_HEADER = ('VENDOR_TEST', 'HW_CFG0', 'HW_CFG1', 'SECRET0',
-                            'SECRET1', 'SECRET2', 'LIFE_CYCLE')
-_OTP_SW_WRITE_BYTE_ALIGNMENT = {
-    'CREATOR_SW_CFG': 4,
-    'OWNER_SW_CFG': 4,
-    'HW_CFG0': 4,
-    'HW_CFG1': 4,
-    'ROT_CREATOR_AUTH_CODESIGN': 4,
-    'ROT_CREATOR_AUTH_STATE': 4,
-    'SECRET0': 8,
-    'SECRET1': 8,
-    'SECRET2': 8,
-}
-
 
 def _present_64bit_encrypt(plain, key):
     '''Scramble a 64bit block with PRESENT cipher'''
@@ -343,6 +329,9 @@ class OtpMemImg(OtpMemMap):
             item["value"] = common.check_bool(item["value"])
             mubi_val_str += "True" if item["value"] else "False"
             item["value"] = mubi_value_as_int(item["value"], item_width)
+        elif item["value"] in ["SOC_DBG_RAW", "SOC_DBG_PRE_PROD", "SOC_DBG_PROD"]:
+            item.setdefault("value", "0x0")
+            item["value"] = self.lc_state.encode("soc_dbg_state", item["value"])
         else:
             mubi_str = ""
             mubi_val_str = ""
@@ -551,14 +540,16 @@ class OtpMemImg(OtpMemMap):
         '''
         data = {}
         for part in self.config['partitions']:
-            if part['name'] in _OTP_SW_SKIP_FROM_HEADER:
+            if part.get('skip_sw_header'):
                 continue
             items = []
             for item in part["items"]:
                 if 'value' not in item.keys():
                     continue
 
-                alignment = _OTP_SW_WRITE_BYTE_ALIGNMENT[part['name']]
+                # Secret partitions connected to the keymgr haven 8-byte alignment, other partitions
+                # have a 4-byte alignment
+                alignment = 8 if common.check_bool(part["secret"]) else 4
 
                 # TODO: Handle aggregation of fields to match write boundary.
                 if item['size'] < alignment:

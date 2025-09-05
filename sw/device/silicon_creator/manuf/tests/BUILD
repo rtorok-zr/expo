@@ -108,7 +108,6 @@ test_suite(
 
 lc_raw_unlock_token(
     name = "lc_raw_unlock_token",
-    top_secret_cfg = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
 )
 
 opentitan_test(
@@ -166,7 +165,6 @@ opentitan_test(
             "//hw/top_earlgrey/data/otp:otp_json_fixed_secret0",
             "//hw/top_earlgrey/data/otp:otp_json_exec_disabled",
         ] + OTP_SIGVERIFY_FAKE_KEYS,
-        top_secret_cfg = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
         visibility = ["//visibility:public"],
     )
     for i in range(0, 8)
@@ -254,6 +252,7 @@ cc_library(
             "//sw/device/lib/dif:uart",
             "//sw/device/lib/runtime:log",
             "//sw/device/lib/testing:pinmux_testutils",
+            "//sw/device/lib/testing/test_framework:ottf_console",
             "//sw/device/lib/testing/test_framework:ottf_test_config",
             "//sw/device/lib/testing/test_framework:status",
             "//sw/device/silicon_creator/manuf/lib:sram_start",
@@ -291,12 +290,12 @@ opentitan_binary(
         "//sw/device/lib/dif:lc_ctrl",
         "//sw/device/lib/dif:otp_ctrl",
         "//sw/device/lib/dif:pinmux",
-        "//sw/device/lib/dif:uart",
         "//sw/device/lib/runtime:log",
         "//sw/device/lib/testing:flash_ctrl_testutils",
         "//sw/device/lib/testing:otp_ctrl_testutils",
         "//sw/device/lib/testing:pinmux_testutils",
         "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_console",
         "//sw/device/lib/testing/test_framework:ottf_test_config",
         "//sw/device/lib/testing/test_framework:status",
         "//sw/device/silicon_creator/manuf/lib:flash_info_fields",
@@ -388,6 +387,7 @@ opentitan_binary(
         "//sw/device/lib/testing:otp_ctrl_testutils",
         "//sw/device/lib/testing:pinmux_testutils",
         "//sw/device/lib/testing/test_framework:check",
+        "//sw/device/lib/testing/test_framework:ottf_console",
         "//sw/device/lib/testing/test_framework:ottf_test_config",
         "//sw/device/lib/testing/test_framework:status",
         "//sw/device/silicon_creator/manuf/lib:sram_start",
@@ -463,7 +463,6 @@ opentitan_test(
 otp_image(
     name = "otp_img_otp_ctrl_functest",
     src = "//hw/top_earlgrey/data/otp:otp_json_test_unlocked0",
-    top_secret_cfg = "//hw/top_earlgrey/data/autogen:top_earlgrey.secrets.dev.gen.hjson",
     visibility = ["//visibility:private"],
 )
 

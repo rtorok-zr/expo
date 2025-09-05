@@ -30,8 +30,6 @@
     u_sha3.u_keccak.u_round_count
 `define REPCNT \
     u_entropy_src_repcnt_ht.u_prim_max_tree_rep_cntr_max
-`define BUCKET \
-    u_entropy_src_bucket_ht.u_prim_max_tree_bin_cntr_max
 
 class entropy_src_err_vseq extends entropy_src_base_vseq;
   `uvm_object_utils(entropy_src_err_vseq)
@@ -167,7 +165,7 @@ class entropy_src_err_vseq extends entropy_src_base_vseq;
         fld = csr.get_field_by_name(fld_name);
 
         foreach (path_exts[i]) begin
-          fifo_forced_paths[i] = cfg.entropy_src_path_vif.fifo_err_path("sfifo_esrng",
+          fifo_forced_paths[i] = cfg.entropy_src_path_vif.fifo_err_path(fifo_name,
                                                                         path_exts[i]);
         end
         force_fifo_err(path1, path2, value1, value2, fld, 1'b1);
@@ -182,10 +180,9 @@ class entropy_src_err_vseq extends entropy_src_base_vseq;
 
         fld = csr.get_field_by_name({cfg.which_fifo.name(), "_err"});
         force_path_err(path, value, fld, 1'b1);
-        // TODO(#23988): uncomment the following lines.
-        // // Additionally check if FIFO_STATE_ERR is set.
-        // fld = csr.get_field_by_name("fifo_state_err");
-        // csr_rd_check(.ptr(fld), .compare_value(1'b1));
+        // Additionally check if FIFO_STATE_ERR is set.
+        fld = csr.get_field_by_name("fifo_state_err");
+        csr_rd_check(.ptr(fld), .compare_value(1'b1));
         cov_vif.cg_fifo_err_sample(cfg.which_fifo_err, cfg.which_fifo);
       end
       sfifo_esrng_err_test, sfifo_distr_err_test, sfifo_observe_err_test, sfifo_esfinal_err_test,
