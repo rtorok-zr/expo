@@ -725,7 +725,8 @@ static status_t kmac_process_msg_blocks(kmac_operation_t operation,
       HARDENED_CHECK_LE(nwords, digest_len_words - idx);
       HARDENED_CHECK_LE(nwords, keccak_rate_words);
       hardened_mmio_read(&digest[idx], kKmacStateShare0Addr, nwords);
-      hardened_mmio_read(&digest[idx + digest_len_words], kKmacStateShare1Addr, nwords);
+      hardened_mmio_read(&digest[idx + digest_len_words], kKmacStateShare1Addr,
+                         nwords);
       idx += nwords;
     } else {
       // Skip right to the hardened check here instead of returning
