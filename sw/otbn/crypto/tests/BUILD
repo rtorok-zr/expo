@@ -21,8 +21,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -37,8 +37,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -61,8 +61,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -88,8 +88,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -104,8 +104,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -120,8 +120,8 @@ otbn_sim_test(
         "//sw/otbn/crypto:ed25519_scalar",
         "//sw/otbn/crypto:field25519",
         "//sw/otbn/crypto:sha512_compact",
-        "//sw/otbn/crypto:sha512_padding",
         "//sw/otbn/crypto:sha512_interface",
+        "//sw/otbn/crypto:sha512_padding",
     ],
 )
 
@@ -1431,9 +1431,9 @@ otbn_sim_test(
     ],
     exp = "sha512_interface_test.exp",
     deps = [
+        "//sw/otbn/crypto:sha512_compact",
         "//sw/otbn/crypto:sha512_interface",
         "//sw/otbn/crypto:sha512_padding",
-        "//sw/otbn/crypto:sha512_compact",
     ],
 )
 
