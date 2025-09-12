@@ -136,11 +136,11 @@ typedef struct ed25519_signature {
 
 /**
  * Start an async Ed25519ph signature generation operation on OTBN.
- * 
+ *
  * Returns an `OTCRYPTO_ASYNC_INCOMPLETE` error if OTBN is busy.
  *
  * @param prehashed_message Prehashed (SHA-512) message to sign.
- * @param hash_h SHA-512 hash of the Ed25519 private key to sign with. 
+ * @param hash_h SHA-512 hash of the Ed25519 private key to sign with.
  * @param context Context to use for signing.
  * @param context_length Length of the provided context.
  * @return Result of the operation (OK or error).
@@ -171,7 +171,7 @@ status_t ed25519_sign_finalize(ed25519_signature_t *result);
  * This function expects the scalar value k as computed in RFC 8032 section
  * 5.2.6 step 2 to be pre-computed and provided as a little-endian value to this
  * function; see that section of the RFC for details.
- * 
+ *
  * @param signature Signature to verify.
  * @param prehashed_message Prehashed (SHA-512) message to sign.
  * @param hash_k Pre-computed scalar value k for verification.
@@ -189,7 +189,7 @@ status_t ed25519_verify_start(
 
 /**
  * Finish an async Ed25519 signature verification operation on OTBN.
- * 
+ *
  * @param signature Signature to be verified.
  * @param[out] result Result of verification.
  * @return Result of the operation (OK or error).

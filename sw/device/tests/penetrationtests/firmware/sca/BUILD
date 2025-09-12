@@ -160,24 +160,6 @@ cc_library(
 )
 
 cc_library(
-    name = "extclk_sca_fi",
-    srcs = ["extclk_sca_fi.c"],
-    hdrs = ["extclk_sca_fi.h"],
-    deps = [
-        "//sw/device/lib/base:memory",
-        "//sw/device/lib/base:multibits",
-        "//sw/device/lib/base:status",
-        "//sw/device/lib/dif:clkmgr",
-        "//sw/device/lib/runtime:ibex",
-        "//sw/device/lib/runtime:log",
-        "//sw/device/lib/testing/test_framework:check",
-        "//sw/device/lib/testing/test_framework:ujson_ottf",
-        "//sw/device/lib/ujson",
-        "//sw/device/tests/penetrationtests/json:extclk_sca_fi_commands",
-    ],
-)
-
-cc_library(
     name = "hmac_sca",
     srcs = ["hmac_sca.c"],
     hdrs = ["hmac_sca.h"],
@@ -254,6 +236,7 @@ cc_library(
         "//sw/device/sca/lib:prng",
         "//sw/device/tests/penetrationtests/firmware/lib:pentest_lib",
         "//sw/device/tests/penetrationtests/firmware/sca/otbn:otbn_insn_carry_flag",
+        "//sw/device/tests/penetrationtests/firmware/sca/otbn:otbn_insn_combi_ops",
         "//sw/device/tests/penetrationtests/firmware/sca/otbn:otbn_key_sideload_sca",
         "//sw/device/tests/penetrationtests/json:otbn_sca_commands",
         "//sw/otbn/crypto:p256_ecdsa_sca",

@@ -139,18 +139,19 @@ status_t cryptolib_fi_rsa_enc_impl(cryptolib_fi_asym_rsa_enc_in_t uj_input,
     };
 
     // Trigger window.
-    if (uj_input.trigger == 0) {
+    if (uj_input.trigger & kPentestTrigger1) {
       pentest_set_trigger_high();
     }
-    TRY(otcrypto_rsa_encrypt(&public_key, hash_mode, input_message, label_buf,
-                             ciphertext));
-    if (uj_input.trigger == 0) {
+    otcrypto_status_t status_out = otcrypto_rsa_encrypt(
+        &public_key, hash_mode, input_message, label_buf, ciphertext);
+    if (uj_input.trigger & kPentestTrigger1) {
       pentest_set_trigger_low();
     }
 
     // Return data back to host.
     uj_output->data_len = num_bytes;
     uj_output->cfg = 0;
+    uj_output->status = (size_t)status_out.value;
     memset(uj_output->data, 0, RSA_CMD_MAX_MESSAGE_BYTES);
     memcpy(uj_output->data, ciphertext_buf, uj_output->data_len);
     // Return received n and d back to host.
@@ -194,12 +195,12 @@ status_t cryptolib_fi_rsa_enc_impl(cryptolib_fi_asym_rsa_enc_in_t uj_input,
     };
 
     // Trigger window.
-    if (uj_input.trigger == 0) {
+    if (uj_input.trigger & kPentestTrigger1) {
       pentest_set_trigger_high();
     }
     TRY(otcrypto_rsa_private_key_from_exponents(
         rsa_size, modulus, uj_input.e, d_share0, d_share1, &private_key));
-    if (uj_input.trigger == 0) {
+    if (uj_input.trigger & kPentestTrigger1) {
       pentest_set_trigger_low();
     }
 
@@ -222,12 +223,12 @@ status_t cryptolib_fi_rsa_enc_impl(cryptolib_fi_asym_rsa_enc_in_t uj_input,
 
     size_t msg_len;
     // Trigger window.
-    if (uj_input.trigger == 1) {
+    if (uj_input.trigger & kPentestTrigger2) {
       pentest_set_trigger_high();
     }
     TRY(otcrypto_rsa_decrypt(&private_key, hash_mode, ciphertext, label_buf,
                              plaintext, &msg_len));
-    if (uj_input.trigger == 1) {
+    if (uj_input.trigger & kPentestTrigger2) {
       pentest_set_trigger_low();
     }
 
@@ -355,12 +356,12 @@ status_t cryptolib_fi_rsa_sign_impl(
   };
 
   // Trigger window.
-  if (uj_input.trigger == 0) {
+  if (uj_input.trigger & kPentestTrigger1) {
     pentest_set_trigger_high();
   }
   TRY(otcrypto_rsa_private_key_from_exponents(
       rsa_size, modulus, uj_input.e, d_share0, d_share1, &private_key));
-  if (uj_input.trigger == 0) {
+  if (uj_input.trigger & kPentestTrigger1) {
     pentest_set_trigger_low();
   }
 
@@ -380,7 +381,7 @@ status_t cryptolib_fi_rsa_sign_impl(
       .mode = hash_mode,
   };
   // Trigger window.
-  if (uj_input.trigger == 1) {
+  if (uj_input.trigger & kPentestTrigger2) {
     pentest_set_trigger_high();
   }
   // Hash the message.
@@ -391,7 +392,7 @@ status_t cryptolib_fi_rsa_sign_impl(
   } else {
     TRY(otcrypto_sha2_512(msg_buf, &msg_digest));
   }
-  if (uj_input.trigger == 1) {
+  if (uj_input.trigger & kPentestTrigger2) {
     pentest_set_trigger_low();
   }
 
@@ -402,12 +403,12 @@ status_t cryptolib_fi_rsa_sign_impl(
   };
 
   // Trigger window.
-  if (uj_input.trigger == 2) {
+  if (uj_input.trigger & kPentestTrigger3) {
     pentest_set_trigger_high();
   }
   TRY(otcrypto_rsa_sign(&private_key, msg_digest, padding_mode, sig_buf));
   // Trigger window.
-  if (uj_input.trigger == 2) {
+  if (uj_input.trigger & kPentestTrigger3) {
     pentest_set_trigger_low();
   }
 
@@ -507,13 +508,13 @@ status_t cryptolib_fi_rsa_verify_impl(
       .key = public_key_data,
   };
   // Trigger window.
-  if (uj_input.trigger == 0) {
+  if (uj_input.trigger & kPentestTrigger1) {
     pentest_set_trigger_high();
   }
   TRY(otcrypto_rsa_public_key_construct(rsa_size, modulus, uj_input.e,
                                         &public_key));
   // Trigger window.
-  if (uj_input.trigger == 0) {
+  if (uj_input.trigger & kPentestTrigger1) {
     pentest_set_trigger_low();
   }
 
@@ -544,7 +545,7 @@ status_t cryptolib_fi_rsa_verify_impl(
   };
 
   // Trigger window.
-  if (uj_input.trigger == 1) {
+  if (uj_input.trigger & kPentestTrigger2) {
     pentest_set_trigger_high();
   }
   // Hash the message.
@@ -555,18 +556,18 @@ status_t cryptolib_fi_rsa_verify_impl(
   } else {
     TRY(otcrypto_sha2_512(msg_buf, &msg_digest));
   }
-  if (uj_input.trigger == 1) {
+  if (uj_input.trigger & kPentestTrigger2) {
     pentest_set_trigger_low();
   }
 
   hardened_bool_t verification_result;
   // Trigger window.
-  if (uj_input.trigger == 2) {
+  if (uj_input.trigger & kPentestTrigger3) {
     pentest_set_trigger_high();
   }
   TRY(otcrypto_rsa_verify(&public_key, msg_digest, padding_mode, sig,
                           &verification_result));
-  if (uj_input.trigger == 2) {
+  if (uj_input.trigger & kPentestTrigger3) {
     pentest_set_trigger_low();
   }
 
@@ -680,6 +681,27 @@ status_t cryptolib_fi_p256_sign_impl(
   memset(private_key_masked.share1, 0, kP256MaskedScalarShareBytes);
   private_key.checksum = integrity_blinded_checksum(&private_key);
 
+  // Allocate space for a public key.
+  uint32_t pk[kPentestP256Words * 2] = {0};
+  otcrypto_unblinded_key_t public_key = {
+      .key_mode = kOtcryptoKeyModeEcdsaP256,
+      .key_length = sizeof(pk),
+      .key = pk,
+  };
+
+  // Create a key pair if requested.
+  if (uj_input.cfg == 1) {
+    // Trigger window 0.
+    if (uj_input.trigger == 0) {
+      pentest_set_trigger_high();
+    }
+    TRY(otcrypto_ecdsa_p256_keygen(&private_key, &public_key));
+    pentest_set_trigger_low();
+    if (uj_input.trigger == 0) {
+      pentest_set_trigger_low();
+    }
+  }
+
   // Set up the message buffer.
   uint32_t message_buf[kPentestP256Words];
   memset(message_buf, 0, sizeof(message_buf));
@@ -701,6 +723,7 @@ status_t cryptolib_fi_p256_sign_impl(
   // Trigger window.
   pentest_set_trigger_high();
   TRY(otcrypto_ecdsa_p256_sign(&private_key, message_digest, signature_mut));
+  pentest_set_trigger_low();
 
   // Return data back to host.
   uj_output->cfg = 0;
@@ -711,9 +734,10 @@ status_t cryptolib_fi_p256_sign_impl(
   memcpy(uj_output->r, signature_p256->r, kP256ScalarBytes);
   memcpy(uj_output->s, signature_p256->s, kP256ScalarBytes);
 
-  // Return 0 the public key.
-  memset(uj_output->pubx, 0, P256_CMD_BYTES);
-  memset(uj_output->puby, 0, P256_CMD_BYTES);
+  // Return the public key.
+  p256_point_t *pub_p256 = (p256_point_t *)public_key.key;
+  memcpy(uj_output->pubx, pub_p256->x, P256_CMD_BYTES);
+  memcpy(uj_output->puby, pub_p256->y, P256_CMD_BYTES);
 
   return OK_STATUS();
 }
@@ -871,6 +895,27 @@ status_t cryptolib_fi_p384_sign_impl(
   memset(private_key_masked.share1, 0, kP384MaskedScalarShareBytes);
   private_key.checksum = integrity_blinded_checksum(&private_key);
 
+  // Allocate space for a public key.
+  uint32_t pk[kPentestP384Words * 2] = {0};
+  otcrypto_unblinded_key_t public_key = {
+      .key_mode = kOtcryptoKeyModeEcdsaP384,
+      .key_length = sizeof(pk),
+      .key = pk,
+  };
+
+  // Create a key pair if requested.
+  if (uj_input.cfg == 1) {
+    // Trigger window 0.
+    if (uj_input.trigger == 0) {
+      pentest_set_trigger_high();
+    }
+    TRY(otcrypto_ecdsa_p384_keygen(&private_key, &public_key));
+    pentest_set_trigger_low();
+    if (uj_input.trigger == 0) {
+      pentest_set_trigger_low();
+    }
+  }
+
   // Set up the message buffer.
   uint32_t message_buf[kPentestP384Words];
   memset(message_buf, 0, sizeof(message_buf));
@@ -890,7 +935,9 @@ status_t cryptolib_fi_p384_sign_impl(
   };
 
   // Trigger window.
+  pentest_set_trigger_high();
   TRY(otcrypto_ecdsa_p384_sign(&private_key, message_digest, signature_mut));
+  pentest_set_trigger_low();
 
   // Return data back to host.
   uj_output->cfg = 0;
@@ -901,9 +948,10 @@ status_t cryptolib_fi_p384_sign_impl(
   memcpy(uj_output->r, signature_p384->r, kP384ScalarBytes);
   memcpy(uj_output->s, signature_p384->s, kP384ScalarBytes);
 
-  // Return 0 for the public key.
-  memset(uj_output->pubx, 0, P384_CMD_BYTES);
-  memset(uj_output->puby, 0, P384_CMD_BYTES);
+  // Return the public key.
+  p384_point_t *pub_p384 = (p384_point_t *)public_key.key;
+  memcpy(uj_output->pubx, pub_p384->x, P384_CMD_BYTES);
+  memcpy(uj_output->puby, pub_p384->y, P384_CMD_BYTES);
 
   return OK_STATUS();
 }
