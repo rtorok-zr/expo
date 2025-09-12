@@ -141,7 +141,7 @@ status_t cryptolib_sca_aes_impl(uint8_t data_in[AES_CMD_MAX_MSG_BYTES],
 
   // Trigger window.
   pentest_set_trigger_high();
-  otcrypto_aes(&aes_key, aes_iv, aes_mode, op, input, aes_padding, output);
+  TRY(otcrypto_aes(&aes_key, aes_iv, aes_mode, op, input, aes_padding, output));
   pentest_set_trigger_low();
 
   // Return data back to host.
@@ -153,32 +153,10 @@ status_t cryptolib_sca_aes_impl(uint8_t data_in[AES_CMD_MAX_MSG_BYTES],
   return OK_STATUS();
 }
 
-status_t cryptolib_sca_drbg_impl(uint8_t entropy[DRBG_CMD_MAX_ENTROPY_BYTES],
-                                 size_t entropy_len,
-                                 uint8_t nonce[DRBG_CMD_MAX_NONCE_BYTES],
-                                 size_t nonce_len,
-                                 uint8_t data_out[DRBG_CMD_MAX_OUTPUT_BYTES],
-                                 size_t *data_out_len, size_t reseed_interval,
-                                 size_t mode, size_t cfg_in, size_t *cfg_out,
-                                 size_t trigger) {
-  // Entropy buffer used for the instantiation of the DRBG.
-  uint8_t entropy_buf[entropy_len];
-  memcpy(entropy_buf, entropy, entropy_len);
-
-  otcrypto_const_byte_buf_t entropy_in = {
-      .len = entropy_len,
-      .data = entropy_buf,
-  };
-
-  // Trigger window 0.
-  if (trigger == 0) {
-    pentest_set_trigger_high();
-  }
-  TRY(otcrypto_drbg_instantiate(entropy_in));
-  if (trigger == 0) {
-    pentest_set_trigger_low();
-  }
-
+status_t cryptolib_sca_drbg_generate_impl(
+    uint8_t nonce[DRBG_CMD_MAX_NONCE_BYTES], size_t nonce_len,
+    uint8_t data_out[DRBG_CMD_MAX_OUTPUT_BYTES], size_t data_out_len,
+    size_t mode, size_t cfg_in, size_t *cfg_out, size_t trigger) {
   // Nonce buffer used for the generate command of the DRBG.
   uint8_t nonce_buf[nonce_len];
   memcpy(nonce_buf, nonce, nonce_len);
@@ -189,26 +167,54 @@ status_t cryptolib_sca_drbg_impl(uint8_t entropy[DRBG_CMD_MAX_ENTROPY_BYTES],
   };
 
   // Buffer for the output entropy data.
-  uint32_t output_data[entropy_len];
+  uint32_t output_data[data_out_len];
   otcrypto_word32_buf_t output = {
       .data = output_data,
       .len = ARRAYSIZE(output_data),
   };
 
   // Trigger window 0.
-  if (trigger == 1) {
+  if (trigger & kPentestTrigger2) {
     pentest_set_trigger_high();
   }
   TRY(otcrypto_drbg_generate(nonce_in, output));
-  if (trigger == 1) {
+  if (trigger & kPentestTrigger2) {
     pentest_set_trigger_low();
   }
 
   // Return data back to host.
-  *data_out_len = entropy_len;
   *cfg_out = 0;
   memset(data_out, 0, DRBG_CMD_MAX_OUTPUT_BYTES);
-  memcpy(data_out, output_data, *data_out_len);
+  memcpy(data_out, output_data, data_out_len);
+
+  return OK_STATUS();
+}
+
+status_t cryptolib_sca_drbg_reseed_impl(
+    uint8_t entropy[DRBG_CMD_MAX_ENTROPY_BYTES], size_t entropy_len,
+    uint8_t nonce[DRBG_CMD_MAX_NONCE_BYTES], size_t nonce_len,
+    size_t reseed_interval, size_t mode, size_t cfg_in, size_t *cfg_out,
+    size_t trigger) {
+  // Entropy buffer used for the instantiation of the DRBG.
+  uint8_t entropy_buf[entropy_len];
+  memcpy(entropy_buf, entropy, entropy_len);
+
+  otcrypto_const_byte_buf_t entropy_in = {
+      .len = entropy_len,
+      .data = entropy_buf,
+  };
+
+  // Trigger window 0.
+  if (trigger & kPentestTrigger1) {
+    pentest_set_trigger_high();
+  }
+  TRY(otcrypto_drbg_instantiate(entropy_in));
+  if (trigger & kPentestTrigger1) {
+    pentest_set_trigger_low();
+  }
+
+  // Return data back to host.
+  *cfg_out = 0;
 
   return OK_STATUS();
 }
@@ -304,13 +310,13 @@ status_t cryptolib_sca_gcm_impl(
       LOG_ERROR("Unrecognized AES-GCM tag length: %d", *tag_len);
       return INVALID_ARGUMENT();
   }
-  LOG_INFO("GCM IMPl1");
+
   // Trigger window.
   pentest_set_trigger_high();
   TRY(otcrypto_aes_gcm_encrypt(&gcm_key, plaintext, gcm_iv, gcm_aad,
                                gcm_tag_len, actual_ciphertext, actual_tag));
   pentest_set_trigger_low();
-  LOG_INFO("GCM IMPl1");
+
   // Return data back to host.
   *cfg_out = 0;
   // Ciphertext.
