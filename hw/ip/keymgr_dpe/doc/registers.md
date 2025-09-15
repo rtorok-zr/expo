@@ -58,6 +58,7 @@
 | keymgr_dpe.[`ERR_CODE`](#err_code)                                 | 0xc8     |        4 | Key manager error code.                                                    |
 | keymgr_dpe.[`FAULT_STATUS`](#fault_status)                         | 0xcc     |        4 | This register represents both synchronous and asynchronous fatal faults.   |
 | keymgr_dpe.[`DEBUG`](#debug)                                       | 0xd0     |        4 | The register holds some debug information that may be convenient if keymgr |
+| keymgr_dpe.[`LOAD_KEY_LOCK`](#load_key_lock)                       | 0xd4     |        4 | Register write lock for the LOAD_KEY command                               |
 
 ## INTR_STATE
 Interrupt State Register
@@ -176,25 +177,30 @@ Other values are reserved.
 Key manager operation controls
 - Offset: `0x18`
 - Reset default: `0x10`
-- Reset mask: `0x1df070`
+- Reset mask: `0x5df070`
 - Register enable: [`CFG_REGWEN`](#cfg_regwen)
 
 ### Fields
 
 ```wavejson
-{"reg": [{"bits": 4}, {"name": "OPERATION", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 5}, {"name": "DEST_SEL", "bits": 2, "attr": ["rw"], "rotate": -90}, {"name": "SLOT_SRC_SEL", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 1}, {"name": "SLOT_DST_SEL", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 11}], "config": {"lanes": 1, "fontsize": 10, "vspace": 140}}
+{"reg": [{"bits": 4}, {"name": "OPERATION", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 5}, {"name": "DEST_SEL", "bits": 2, "attr": ["rw"], "rotate": -90}, {"name": "SLOT_SRC_SEL", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 1}, {"name": "SLOT_DST_SEL", "bits": 3, "attr": ["rw"], "rotate": -90}, {"bits": 1}, {"name": "SW_BINDING_ONLY", "bits": 1, "attr": ["rw"], "rotate": -90}, {"bits": 9}], "config": {"lanes": 1, "fontsize": 10, "vspace": 170}}
 ```
 
-|  Bits  |  Type  |  Reset  | Name                                            |
-|:------:|:------:|:-------:|:------------------------------------------------|
-| 31:21  |        |         | Reserved                                        |
-| 20:18  |   rw   |   0x0   | [SLOT_DST_SEL](#control_shadowed--slot_dst_sel) |
-|   17   |        |         | Reserved                                        |
-| 16:14  |   rw   |   0x0   | [SLOT_SRC_SEL](#control_shadowed--slot_src_sel) |
-| 13:12  |   rw   |   0x0   | [DEST_SEL](#control_shadowed--dest_sel)         |
-|  11:7  |        |         | Reserved                                        |
-|  6:4   |   rw   |   0x1   | [OPERATION](#control_shadowed--operation)       |
-|  3:0   |        |         | Reserved                                        |
+|  Bits  |  Type  |  Reset  | Name                                                  |
+|:------:|:------:|:-------:|:------------------------------------------------------|
+| 31:23  |        |         | Reserved                                              |
+|   22   |   rw   |   0x0   | [SW_BINDING_ONLY](#control_shadowed--sw_binding_only) |
+|   21   |        |         | Reserved                                              |
+| 20:18  |   rw   |   0x0   | [SLOT_DST_SEL](#control_shadowed--slot_dst_sel)       |
+|   17   |        |         | Reserved                                              |
+| 16:14  |   rw   |   0x0   | [SLOT_SRC_SEL](#control_shadowed--slot_src_sel)       |
+| 13:12  |   rw   |   0x0   | [DEST_SEL](#control_shadowed--dest_sel)               |
+|  11:7  |        |         | Reserved                                              |
+|  6:4   |   rw   |   0x1   | [OPERATION](#control_shadowed--operation)             |
+|  3:0   |        |         | Reserved                                              |
+
+### CONTROL_SHADOWED . SW_BINDING_ONLY
+Only apply software binding as a message input to the advance operation.
 
 ### CONTROL_SHADOWED . SLOT_DST_SEL
 The destination key slot to be used for the advance and erase operations.
@@ -684,6 +690,23 @@ misbehaves.
 |   2    |  rw0c  |   0x0   | INVALID_DEV_ID       | Device ID failed input checks during operation       |
 |   1    |  rw0c  |   0x0   | INVALID_OWNER_SEED   | Owner seed failed input checks during operation      |
 |   0    |  rw0c  |   0x0   | INVALID_CREATOR_SEED | Creator seed failed input checks during operation    |
+
+## LOAD_KEY_LOCK
+Register write lock for the LOAD_KEY command
+- Offset: `0xd4`
+- Reset default: `0x0`
+- Reset mask: `0x1`
+
+### Fields
+
+```wavejson
+{"reg": [{"name": "LOCK", "bits": 1, "attr": ["rw1s"], "rotate": -90}, {"bits": 31}], "config": {"lanes": 1, "fontsize": 10, "vspace": 80}}
+```
+
+|  Bits  |  Type  |  Reset  | Name   | Description                                                                                                                                                                  |
+|:------:|:------:|:-------:|:-------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  31:1  |        |         |        | Reserved                                                                                                                                                                     |
+|   0    |  rw1s  |   0x0   | LOCK   | Load key register write lock. Load key lock to 0, and its value cannot be altered by software until the next reset or locked. Once locked, the LOAD_KEY command is disabled. |
 
 
 <!-- END CMDGEN -->

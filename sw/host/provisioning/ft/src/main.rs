@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
+use arrayvec::ArrayVec;
 use base64ct::{Base64, Encoding};
 use clap::{Args, Parser};
 use elliptic_curve::SecretKey;
@@ -22,7 +23,7 @@ use opentitanlib::backend;
 use opentitanlib::console::spi::SpiConsoleDevice;
 use opentitanlib::dif::lc_ctrl::DifLcCtrlState;
 use opentitanlib::test_utils::init::InitializeTest;
-use opentitanlib::test_utils::lc::read_lc_state;
+use opentitanlib::test_utils::lc::{read_device_id, read_lc_state};
 use opentitanlib::test_utils::load_sram_program::SramProgramParams;
 use ujson_lib::provisioning_data::{ManufCertgenInputs, ManufFtIndividualizeData};
 use util_lib::{
@@ -192,7 +193,11 @@ fn main() -> Result<()> {
         hex_string_to_u32_arrayvec::<8>(opts.provisioning_data.owner_measurement.as_str())?;
     let owner_security_version = opts.provisioning_data.owner_security_version;
     let dice_ca_key_id = hex_string_to_u8_arrayvec::<20>(ca_cfgs["dice"].key_id.as_str())?;
-    let ext_ca_key_id = hex_string_to_u8_arrayvec::<20>(ca_cfgs["ext"].key_id.as_str())?;
+    let ext_ca_key_id = if let Some(ext) = ca_cfgs.get("ext") {
+        hex_string_to_u8_arrayvec::<20>(ext.key_id.as_str())?
+    } else {
+        ArrayVec::<u8, 20>::new()
+    };
     let _perso_certgen_inputs = ManufCertgenInputs {
         rom_ext_measurement: rom_ext_measurement.clone(),
         rom_ext_security_version,
@@ -249,6 +254,7 @@ fn main() -> Result<()> {
         | DifLcCtrlState::TestUnlocked5
         | DifLcCtrlState::TestUnlocked6
         | DifLcCtrlState::TestUnlocked7 => {
+            // Run FT individualize.
             response.lc_state.individualize = Some(response.lc_state.unlocked);
             let t0 = Instant::now();
             run_sram_ft_individualize(
@@ -261,6 +267,8 @@ fn main() -> Result<()> {
                 &spi_console_device,
             )?;
             response.stats.log_elapsed_time("ft-individualize", t0);
+
+            // Perform test exit.
             let t0 = Instant::now();
             test_exit(
                 &transport,
@@ -308,6 +316,22 @@ fn main() -> Result<()> {
     } else {
         serde_json::to_string(&response)?
     };
+
+    // Extract final device ID.
+    let mut final_device_id = read_device_id(
+        &transport,
+        &opts.init.jtag_params,
+        opts.init.bootstrap.options.reset_delay,
+    )?;
+
+    // Convert final device ID to a big-endian string.
+    final_device_id.reverse();
+    response.device_id = final_device_id
+        .iter()
+        .map(|v| format!("{v:08X}"))
+        .collect::<Vec<String>>()
+        .join("");
+
     println!("PROVISIONING_DATA: {doc}");
 
     Ok(())
