@@ -2,6 +2,10 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
+load(
+    "@provisioning_exts//:cfg.bzl",
+    "EXT_SIGNED_PERSO_BINS",
+)
 load("//rules:const.bzl", "CONST", "hex")
 load("//rules:manifest.bzl", "manifest")
 load("//rules/opentitan:cc.bzl", "opentitan_binary_assemble")
@@ -95,6 +99,7 @@ opentitan_binary(
     linker_script = "//sw/device/silicon_creator/manuf/lib:sram_program_linker_script",
     deps = [
         ":flash_info_permissions",
+        "//hw/top:dt",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/arch:device",
@@ -392,9 +397,8 @@ filegroup(
            [
                ":ft_fw_bundle_{}".format(sku)
                for sku in EARLGREY_SKUS.keys()
-           ] + [
-        "//sw/device/silicon_creator/manuf/base/binaries:ft_personalize_sival",
-    ],
+           ] + ["//sw/device/silicon_creator/manuf/base/binaries:ft_personalize_sival"] +
+           EXT_SIGNED_PERSO_BINS,
 )
 
 [

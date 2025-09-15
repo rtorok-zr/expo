@@ -93,6 +93,7 @@ opentitan_test(
         ":alert",
         ":rstmgr",
         "//hw/top:alert_handler_c_regs",
+        "//hw/top:dt",
         "//hw/top:flash_ctrl_c_regs",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top:rstmgr_c_regs",
@@ -111,6 +112,7 @@ cc_library(
         ":lifecycle",
         ":otp",
         "//hw/top:ast_c_regs",
+        "//hw/top:dt",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top:sensor_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
@@ -315,6 +317,12 @@ opentitan_test(
             "//hw/top_earlgrey:fpga_cw310_sival_rom_ext": "broken",
         },
     ),
+    qemu = qemu_params(
+        globals = {
+            # Test uses rstmgr, keep running on fatal resets:
+            "ot-rstmgr.fatal_reset": 0,
+        },
+    ),
     verilator = verilator_params(
         timeout = "long",
     ),
@@ -429,6 +437,7 @@ cc_library(
     srcs = ["otbn.c"],
     hdrs = ["otbn.h"],
     deps = [
+        "//hw/top:dt",
         "//hw/top:otbn_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
         "//sw/device/lib/base:abs_mmio",
@@ -461,7 +470,7 @@ dual_cc_library(
     ),
     deps = dual_inputs(
         device = [
-            "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+            "//hw/top:dt",
         ],
         host = [
             "//sw/device/lib/base:global_mock",
@@ -493,6 +502,7 @@ cc_library(
     srcs = ["pinmux.c"],
     hdrs = ["pinmux.h"],
     deps = [
+        "//hw/top:dt",
         "//hw/top:gpio_c_regs",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top:pinmux_c_regs",
@@ -668,6 +678,7 @@ dual_cc_library(
             "@googletest//:gtest",
         ],
         shared = [
+            "//hw/top:dt",
             "//hw/top:otp_ctrl_c_regs",
             "//sw/device/lib/base:bitfield",
             "//sw/device/lib/base:macros",
@@ -758,6 +769,7 @@ cc_library(
     deps = [
         ":pwrmgr",
         "//hw/top:aon_timer_c_regs",
+        "//hw/top:dt",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top:pwrmgr_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
@@ -795,7 +807,7 @@ opentitan_test(
         ":retention_sram",
         ":rstmgr",
         ":watchdog",
-        "//hw/top_earlgrey/sw/autogen:top_earlgrey",
+        "//hw/top:dt",
         "//sw/device/lib/base:abs_mmio",
         "//sw/device/lib/testing:rstmgr_testutils",
         "//sw/device/lib/testing/test_framework:ottf_main",
@@ -870,6 +882,7 @@ cc_library(
     deps = [
         ":lifecycle",
         ":otp",
+        "//hw/top:dt",
         "//hw/top:otp_ctrl_c_regs",
         "//hw/top:sensor_ctrl_c_regs",
         "//hw/top_earlgrey/sw/autogen:top_earlgrey",
