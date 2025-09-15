@@ -200,43 +200,6 @@ module otp_ctrl_dai
   // after digest and write ops.
   assign dai_rdata_o   = (state_q == IdleSt) ? data_q : '0;
 
-  ///////////////////////
-  // Zeroization Check //
-  ///////////////////////
-
-  // The read-out data is is buffered and replicated, then screened for the
-  // zeroization marker. This is only relevant for the `ZEROIZE` command to
-  // prevent exposing scrambled data to software.
-
-  localparam int ZerFanout = 4;
-
-  // Compose several individual MuBis into a larger MuBi. The resulting
-  // value must always be a valid MuBi constant (either `true` or `false`).
-  logic   [ZerFanout-1:0][ScrmblBlockWidth-1:0] otp_rdata_post;
-  mubi4_t [ZerFanout-1:0] zeroized_valid_pre;
-  mubi16_t zeroized_valid;
-  for (genvar k = 0; k < ZerFanout; k++) begin : gen_zeroized_valid_pre
-    prim_buf #(
-      .Width(ScrmblBlockWidth)
-    ) u_rdata_buf (
-      .in_i  ( otp_rdata_i       ),
-      .out_o ( otp_rdata_post[k] )
-    );
-
-    // Interleave MuBi4 chunks to a create higher-order MuBis.
-    // Even indices: (MuBi4True, MuBi4False)
-    // Odd indices:  (MuBi4False, MuBi4True)
-    assign zeroized_valid_pre[k] = (check_zeroized_valid(otp_rdata_post[k]) ^~ (k % 2 == 0)) ?
-        MuBi4True : MuBi4False;
-  end
-
-  prim_sec_anchor_buf #(
-    .Width(MuBi16Width)
-  ) u_zeroized_valid_buf (
-    .in_i  ( zeroized_valid_pre ),
-    .out_o ( {zeroized_valid}   )
-  );
-
   always_comb begin : p_fsm
     state_d = state_q;
 
@@ -495,10 +458,11 @@ module otp_ctrl_dai
               base_sel_q == DaiOffset &&
               otp_addr_o[OtpAddrWidth-1:2] < digest_addr_lut[part_idx][OtpAddrWidth-1:2]) ||
              // If this is a write to an unbuffered partition
-             (PartInfo[part_idx].variant != Buffered && base_sel_q == DaiOffset &&
-              !(PartInfo[part_idx].zeroizable &&
-                (otp_addr_o[OtpAddrWidth-1:2] ==
-                 zeroize_addr_lut[part_idx][OtpAddrWidth-1:2]))))) begin
+             (PartInfo[part_idx].variant != Buffered && base_sel_q == DaiOffset)) &&
+            // Don't allow DAI writes to the zeroization marker.
+            !(PartInfo[part_idx].zeroizable &&
+                (otp_addr_o[OtpAddrWidth-1:2] == zeroize_addr_lut[part_idx][OtpAddrWidth-1:2]))
+        ) begin
           otp_req_o = 1'b1;
           // Depending on the partition configuration,
           // the wrapper is instructed to ignore integrity errors.
@@ -534,12 +498,12 @@ module otp_ctrl_dai
              (PartInfo[part_idx].variant == Buffered && PartInfo[part_idx].hw_digest &&
               base_sel_q == DaiOffset &&
               otp_addr_o[OtpAddrWidth-1:2] < digest_addr_lut[part_idx][OtpAddrWidth-1:2]) ||
-             // If this is a write to an unbuffered partition and not to the zeroized item
-             (PartInfo[part_idx].variant != Buffered && base_sel_q == DaiOffset &&
-              !(PartInfo[part_idx].zeroizable &&
-                (otp_addr_o[OtpAddrWidth-1:2] ==
-                 zeroize_addr_lut[part_idx][OtpAddrWidth-1:2]))))) begin
-
+             // If this is a write to an unbuffered partition.
+             (PartInfo[part_idx].variant != Buffered && base_sel_q == DaiOffset)) &&
+            // Don't allow DAI writes to the zeroization marker.
+            !(PartInfo[part_idx].zeroizable &&
+              (otp_addr_o[OtpAddrWidth-1:2] == zeroize_addr_lut[part_idx][OtpAddrWidth-1:2]))
+        ) begin
           if (otp_rvalid_i) begin
             // Check OTP return code. Note that non-blank errors are recoverable.
             if ((!(otp_err inside {NoError, MacroWriteBlankError}))) begin
@@ -790,16 +754,8 @@ module otp_ctrl_dai
             state_d = IdleSt;
 
             if (otp_err == NoError) begin
-              if (PartInfo[part_idx].secret) begin
-                // Only release the zeroized fuse when the read out data reaches
-                // the valid threshold.
-                if (mubi16_test_true_strict(zeroized_valid)) begin
-                  data_en = 1'b1;
-                end
-              // For software partitions, the read out data is always released.
-              end else begin
-                data_en = 1'b1;
-              end
+              // Unconditionally release the `countones` value of the zeroized word.
+              data_en = 1'b1;
               // Flop trigger for the affected partition such that it can disable
               // periodic checks that could fail.
               zer_trigs_d[part_idx] = MuBi8True;
@@ -847,7 +803,7 @@ module otp_ctrl_dai
     // Unconditionally jump into the terminal error state when a zeroization
     // indicator takes on an invalid value.
     for (int k = 0; k < NumPart; k++) begin
-      if (mubi8_test_invalid(zer_trigs_o[k]) || mubi16_test_invalid(zeroized_valid)) begin
+      if (mubi8_test_invalid(zer_trigs_o[k])) begin
         state_d = ErrorSt;
         fsm_err_o = 1'b1;
         error_d = FsmStateError;
@@ -974,6 +930,30 @@ module otp_ctrl_dai
   assign addr_calc = {cnt, {$clog2(ScrmblBlockWidth/8){1'b0}}} + addr_base;
   assign otp_addr_o = OtpAddrWidth'(addr_calc >> OtpAddrShift);
 
+  ///////////////////////
+  // Zeroization Logic //
+  ///////////////////////
+
+  // Count the number of set bits in the read-out word and release it when the `ZEROIZE` command is
+  // invoked.
+
+  logic [$clog2(ScrmblBlockWidth+1)-1:0] otp_rdata_cnt;
+
+  // Use the `prim_sum_tree` primitive to emulate the SystemVerilog function $countones which is
+  // not supported by all tools.
+  prim_sum_tree #(
+    .NumSrc(ScrmblBlockWidth),
+    .Saturate(1'b0),
+    .InWidth(1)
+  ) u_countones (
+    .clk_i       (clk_i),
+    .rst_ni      (rst_ni),
+    .values_i    (otp_rdata_i),
+    .valid_i     ({ScrmblBlockWidth{1'b1}}),
+    .sum_value_o (otp_rdata_cnt),
+    .sum_valid_o ()
+  );
+
   ///////////////
   // Registers //
   ///////////////
@@ -998,7 +978,7 @@ module otp_ctrl_dai
         end else if (data_sel == DaiData) begin
           data_q <= dai_wdata_i;
         end else if (data_sel == ZerData) begin
-           data_q <= countones(otp_rdata_i);
+           data_q <= ScrmblBlockWidth'(otp_rdata_cnt);
         end else begin
           data_q <= otp_rdata_i;
         end
@@ -1016,7 +996,6 @@ module otp_ctrl_dai
     .d_i(zer_trigs_d),
     .q_o({zer_trigs_o})
   );
-
 
   ////////////////
   // Assertions //

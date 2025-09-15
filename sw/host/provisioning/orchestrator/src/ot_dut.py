@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import hjson
 
-from device_id import DeviceId
+from device_id import DeviceId, DeviceIdentificationNumber
 from sku_config import SkuConfig
 from util import confirm, format_hex, run, resolve_runfile
 
@@ -39,9 +39,7 @@ _ZERO_256BIT_HEXSTR = "0x" + "_".join(["00000000"] * 8)
 # CP & FT Device Firmware
 _BASE_DEV_DIR           = "sw/device/silicon_creator/manuf/base"  # noqa: E221
 _CP_DEVICE_ELF          = "{base_dir}/sram_cp_provision_{target}.elf"  # noqa: E221
-_FT_INDIVID_DEVICE_ELF  = "{base_dir}/sram_ft_individualize_{sku}_{target}.elf"  # noqa: E221
-_FT_PERSO_EMULATION_BIN = "{base_dir}/ft_personalize_{sku}_{target}.prod_key_0.prod_key_0.signed.bin"  # noqa: E221, E501
-_FT_PERSO_SKU_BIN       = "{base_dir}/binaries/ft_personalize_{sku}_{target}.signed.bin"  # noqa: E221, E501
+_FT_INDIVID_DEVICE_ELF  = "{base_dir}/sram_ft_individualize_{otp}_{target}.elf"  # noqa: E221
 _FT_FW_BUNDLE_BIN       = "{base_dir}/ft_fw_bundle_{sku}_{target}.img"  # noqa: E221
 # CP & FT Host Binaries
 _CP_HOST_BIN = "sw/host/provisioning/cp/cp"
@@ -159,17 +157,25 @@ class OtDut():
                 logging.warning(f"CP failed with exit code: {res.returncode}.")
                 confirm()
 
+            # Extract CP device ID.
             chip_probe_data = self._extract_json_data("CHIP_PROBE_DATA",
                                                       stdout_logfile)
+            din_from_device = None
             if "cp_device_id" not in chip_probe_data:
                 logging.error("cp_device_id not found in CHIP_PROBE_DATA.")
                 confirm()
-
+            else:
+                if chip_probe_data["cp_device_id"] == "":
+                    logging.warning(
+                        "cp_device_id empty; setting default of all zeros.")
+                    din_from_device = DeviceIdentificationNumber(0)
+                else:
+                    din_from_device = DeviceIdentificationNumber.from_int(
+                        (int(chip_probe_data["cp_device_id"], 16) >> 32) &
+                        0xFFFFFFFFFFFFFFFF)
             logging.info(
                 f"Updating device ID to: {chip_probe_data['cp_device_id']}")
-            cp_device_id = self.device_id.from_hexstr(
-                chip_probe_data["cp_device_id"])
-            self.device_id.update_base_id(cp_device_id)
+            self.device_id.update_din(din_from_device)
             self.device_id.pretty_print()
 
             self._make_log_dir()
@@ -193,9 +199,7 @@ class OtDut():
         individ_elf = _FT_INDIVID_DEVICE_ELF
         # Emulation perso bins are signed online with fake keys, and therefore
         # have different file naming patterns than production SKUs.
-        perso_bin = _FT_PERSO_EMULATION_BIN
-        if self.sku_config.name != "emulation":
-            perso_bin = _FT_PERSO_SKU_BIN
+        perso_bin = self.sku_config.perso_bin
         fw_bundle_bin = _FT_FW_BUNDLE_BIN
         if self.fpga:
             # Set host flags and device binaries for FPGA DUT.
@@ -207,7 +211,7 @@ class OtDut():
                                            openocd_cfg=openocd_cfg)
             individ_elf = individ_elf.format(
                 base_dir=self._base_dev_dir(),
-                sku=self.sku_config.name,
+                otp=self.sku_config.otp,
                 target=f"fpga_{self.fpga}_rom_with_fake_keys")
             perso_bin = perso_bin.format(
                 base_dir=self._base_dev_dir(),
@@ -225,7 +229,7 @@ class OtDut():
                                            openocd_cfg=openocd_cfg)
             host_flags += " --disable-dft-on-reset"
             individ_elf = individ_elf.format(base_dir=self._base_dev_dir(),
-                                             sku=self.sku_config.name,
+                                             otp=self.sku_config.otp,
                                              target="silicon_creator")
             perso_bin = perso_bin.format(base_dir=self._base_dev_dir(),
                                          sku=self.sku_config.name,
@@ -286,4 +290,8 @@ class OtDut():
 
             self.ft_data = self._extract_json_data("PROVISIONING_DATA",
                                                    stdout_logfile)
+
+            # TODO: check device ID from device matches one constructed on host.
+            self.device_id = DeviceId.from_hexstr(self.ft_data["device_id"])
+
             logging.info("FT completed successfully.")

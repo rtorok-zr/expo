@@ -37,6 +37,15 @@ bazel_dep(
 
 # Overrides and patches:
 single_version_override(
+    module_name = "rules_cc",
+    patch_strip = 1,
+    patches = [
+        "@lowrisc_opentitan//third_party/cc/patches:remove_gold.patch",
+    ],
+    version = "0.1.2",
+)
+
+single_version_override(
     module_name = "rules_rust",
     patch_strip = 1,
     patches = [
@@ -388,3 +397,19 @@ use_repo(
 register_toolchains("//rules/opentitan:localtools")
 
 register_toolchains("//toolchain:cc_toolchain_opentitan")
+
+# Register tops
+top_desc = use_extension("//hw/top:extensions.bzl", "top")
+top_desc.register(
+    bazel_file = "//hw/top_earlgrey:defs.bzl",
+    top_var = "EARLGREY",
+)
+top_desc.register(
+    bazel_file = "//hw/top_darjeeling:defs.bzl",
+    top_var = "DARJEELING",
+)
+top_desc.register(
+    bazel_file = "//hw/top_englishbreakfast:defs.bzl",
+    top_var = "ENGLISHBREAKFAST",
+)
+use_repo(top_desc, "tops_desc")

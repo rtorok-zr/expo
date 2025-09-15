@@ -530,6 +530,14 @@ countermeasures: [
             The destination key slot to be used for the advance and erase operations.
           '''
         },
+        {
+          bits: "22"
+          name: "SW_BINDING_ONLY"
+          resval: "0"
+          desc: '''
+            Only apply software binding as a message input to the advance operation.
+          '''
+        }
       ],
     },
 
@@ -1121,6 +1129,27 @@ countermeasures: [
           desc: "Enable signal from LC ctrl is deactivated",
         },
       ]
+    },
+
+    { name: "LOAD_KEY_LOCK",
+      desc: "Register write lock for the LOAD_KEY command",
+      swaccess: "rw1s",
+      hwaccess: "hro",
+      fields: [
+        { bits: "0",
+          name: "LOCK",
+          resval: "0"
+          desc: '''
+            Load key register write lock.
+
+            Load key lock to 0, and its value cannot be altered by software until the next reset or locked.
+            Once locked, the LOAD_KEY command is disabled.
+          '''
+        },
+      ]
+      // Don't let automated CSR tests write random values to this register, as it could lock
+      // writing to other registers, which the automated tests are not aware of.
+      tags: ["excl:CsrAllTests:CsrExclWrite"]
     },
 
   ],

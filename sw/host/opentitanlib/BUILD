@@ -51,7 +51,7 @@ ujson_rust(
 
 filegroup(
     name = "config",
-    srcs = glob(["src/app/config/*.json"]),
+    srcs = glob(["src/app/config/*.json5"]),
 )
 
 rust_library(
@@ -115,7 +115,6 @@ rust_library(
         "src/io/ioexpander.rs",
         "src/io/jtag.rs",
         "src/io/mod.rs",
-        "src/io/nonblocking_help.rs",
         "src/io/spi.rs",
         "src/io/uart.rs",
         "src/lib.rs",
@@ -230,6 +229,7 @@ rust_library(
         "src/util/printer.rs",
         "src/util/raw_tty.rs",
         "src/util/rom_detect.rs",
+        "src/util/runtime.rs",
         "src/util/serde.rs",
         "src/util/status.rs",
         "src/util/testing.rs",
@@ -314,8 +314,6 @@ rust_library(
         "@crate_index//:indicatif",
         "@crate_index//:log",
         "@crate_index//:memoffset",
-        "@crate_index//:mio",
-        "@crate_index//:mio-signals",
         "@crate_index//:num-bigint-dig",
         "@crate_index//:num-traits",
         "@crate_index//:object",
@@ -336,6 +334,7 @@ rust_library(
         "@crate_index//:shellwords",
         "@crate_index//:strum",
         "@crate_index//:thiserror",
+        "@crate_index//:tokio",
         "@crate_index//:typetag",
         "@crate_index//:zerocopy",
         "@lowrisc_serde_annotate//serde_annotate",
