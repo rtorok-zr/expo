@@ -20,14 +20,18 @@
   /* Load number of limbs. */
   li       x30, 4
 
-  /* Load pointers to modulus and Montgomery constant buffers. */
+  /* Load pointers to cofactor and Montgomery constant buffers. */
   la       x17, m0inv
   la       x18, RR
   la       x27, modulus_p
   la       x28, modulus_q
 
   /* Run exponentiation.
-       dmem[plaintext] = dmem[ciphertext]^dmem[exp] mod dmem[modulus] */
+       dmem[plaintext] = dmem[ciphertext]^<exp> mod <modulus> 
+       where
+         <exp> mod p = exp_p
+         <exp> mod q = exp_q
+         <modulus> = modulus_p * modulus_q. */
   la       x2, plaintext
   la       x3, work_exp
   la       x4, work_reduce

@@ -94,7 +94,11 @@ static status_t keygen_start(uint32_t mode) {
  * @param exp_mode Application mode to expect.
  * @param num_words Number of words for modulus and private exponent.
  * @param[out] n Buffer for the modulus.
- * @param[out] d Buffer for the private exponent.
+ * @param[out] p Buffer for the first cofactor.
+ * @param[out] q Buffer for the second cofactor.
+ * @param[out] d_p Buffer for the first private exponent component.
+ * @param[out] d_q Buffer for the second private exponent component.
+ * @param[out] i_q Buffer for the CRT reconstruction coefficient.
  * @return OK or error.
  */
 static status_t keygen_finalize(uint32_t exp_mode, size_t num_words,

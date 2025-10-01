@@ -18,16 +18,13 @@
 .globl modinv_f4
 .globl relprime_small_primes
 
-.globl prepare_pm1qm1
-.globl derive_d
-.globl derive_crt_component
-
 /**
  * Generate a random RSA key pair.
  *
- * The public key is the pair (n, e), where n is the modulus and e is the
- * public exponent. and the private key is the pair (n, d), where n is the same
- * modulus as in the public key and d is the private exponent.
+ * The public key is the pair (n, e), where n is the modulus and e is the public
+ * exponent. and the private key is the tuple (p, q, d_p, d_q, i_q), where p and
+ * q are the cofactors of n, d_p and d_q are the CRT components of the private
+ * exponent d, and i_q is the inverse of q mod p.
  *
  * For the official specification, see FIPS 186-5 section A.1.3. For the
  * purposes of this implementation, the RSA public exponent e is always 65537
@@ -46,7 +43,14 @@
  * @param[in]  x30: plen, number of 256-bit limbs for p and q
  * @param[in]  w31: all-zero
  * @param[out] dmem[rsa_n..rsa_n+(plen*2*32)] RSA public key modulus (n)
- * @param[out] dmem[rsa_d..rsa_d+(plen*2*32)] RSA private exponent (d)
+ * @param[out] dmem[rsa_p..rsa_p+(plen*32)] first RSA private key prime (p)
+ * @param[out] dmem[rsa_q..rsa_q+(plen*32)] second RSA private key prime (q)
+ * @param[out] dmem[rsa_d_p..rsa_d_p+(plen*32)] first RSA private key private
+       exponent CRT component (d_p)
+ * @param[out] dmem[rsa_d_q..rsa_d_q+(plen*32)] second RSA private key private
+       exponent CRT component (d_q)
+ * @param[out] dmem[rsa_i_q..rsa_i_q+(plen*32)] RSA private key CRT
+       reconstruction coefficient (i_q)
  *
  * clobbered registers: x2 to x26, x31,
  *                      w2, w3, w4..w[4+(plen-1)], w20 to w30
@@ -105,8 +109,7 @@ rsa_keygen:
   la       x11, rsa_qm1
   jal      x1, derive_crt_component
 
-  /* Compute CRT coefficient i_q, the inverse of q mod p 
-     (tail-call).
+  /* Compute CRT coefficient i_q, the inverse of q mod p.
        dmem[rsa_i_q..rsa_i_q+(plen*32)] <= q^(-1) mod p. */
   la       x11, rsa_q
   la       x12, rsa_p
@@ -118,7 +121,7 @@ rsa_keygen:
   la       x18, tmp_scratchpad
   jal      x1, modinv
 
-  /* Multiply p and q to get the public modulus n.
+  /* Multiply p and q to get the public modulus n (tail-call).
        dmem[rsa_n..rsa_n+(plen*2*32)] <= p * q */
   la       x10, rsa_p
   la       x11, rsa_q
@@ -147,7 +150,7 @@ rsa_keygen:
  */
 prepare_pm1qm1:
   /* Subtract 1 from p (no carry from lowest limb since p is odd).
-       dmem[rsa_p..rsa_p+(plen*32)] <= p - 1 */
+       dmem[rsa_pm1..rsa_pm1+(plen*32)] <= p - 1 */
   la       x10, rsa_p
   la       x11, rsa_pm1
   bn.lid   x20, 0(x10++)
@@ -158,8 +161,8 @@ prepare_pm1qm1:
     bn.lid   x20, 0(x10++)
     bn.sid   x20, 0(x11++)
 
-  /* Subtract 1 from q in-place (no carry from lowest limb since p is odd).
-       dmem[rsa_q..rsa_q+(plen*32)] <= q - 1 */
+  /* Subtract 1 from q (no carry from lowest limb since p is odd).
+       dmem[rsa_qm1..rsa_qm1+(plen*32)] <= q - 1 */
   la       x10, rsa_q
   la       x11, rsa_qm1
   bn.lid   x20, 0(x10++)
@@ -239,13 +242,14 @@ derive_d:
  * but this function ignores the most significant n/2 limbs, zero-extending the
  * least significant n/2 limbs to the full buffer.
  *
- * @param[in]  x10: dptr_d_p, pointer to buffer to store result in DMEM (n/2 limbs)
+ * @param[in]  x10: dptr_d_p, pointer to buffer to store result in DMEM (n limbs)
  * @param[in]  x11: dptr_pm1, pointer to (p - 1) to reduce modulo in DMEM (n limbs)
+ * @param[in]  x20: 20, constant
  * @param[in]  x30: plen, number of 256-bit limbs for p and q
  * @param[in]  w31: all-zero
  * @param[out] dmem[dptr_d_p..dptr_d_p+(plen*32)]: result, CRT component d_p
  *
- * clobbered registers: x2 to x5, x8, x12, x13, x23 to x25, w20, w23 to w27
+ * clobbered registers: x2 to x5, x8, x11 to x13, x23 to x25, w20, w23 to w27
  * clobbered flag groups: FG0
  */
 derive_crt_component:
@@ -346,7 +350,15 @@ check_d:
  * @param[in] dmem[rsa_n..rsa_n+(plen*2*32)] RSA public key modulus (n)
  * @param[in] dmem[rsa_cofactor..rsa_cofactor+(plen*32)] Cofactor (p or q)
  * @param[out] dmem[rsa_n..rsa_n+(plen*2*32)] Recomputed public key modulus (n)
- * @param[out] dmem[rsa_d..rsa_d+(plen*2*32)] RSA private exponent (d)
+ * @param[out] dmem[rsa_p..rsa_p+(plen*2*32)] First (recomputed) private key
+       prime (p) 
+ * @param[out] dmem[rsa_q..rsa_q+(plen*2*32)] Second private key prime (q)
+ * @param[out] dmem[rsa_d_p..rsa_d_p+(plen*2*32)] First RSA private key private
+       exponent CRT component (d_p)
+ * @param[out] dmem[rsa_d_q..rsa_d_q+(plen*2*32)] Second RSA private key
+       private exponent CRT component (d_q)
+ * @param[out] dmem[rsa_i_q..rsa_i_q+(plen*2*32)] RSA private key CRT
+       reconstruction coefficient (i_q)
  *
  * clobbered registers: x2 to x8, x10 to x15, x20 to x26, x31, w3, w20 to w28
  * clobbered flag groups: FG0, FG1
@@ -1004,7 +1016,7 @@ _modinv_f4_u_ok:
  * @param[in]  w31: all-zero
  * @param[out] dmem[dptr_A..dptr_A+(plen*32)]: result, modular inverse d
  *
- * clobbered registers: MOD, x2 to x4, x31, w20 to w28
+ * clobbered registers: x2 to x6, x31, w20 to w26
  * clobbered flag groups: FG0, FG1
  */
 
@@ -2513,7 +2525,8 @@ rsa_p:
 rsa_q:
 .zero 256
 
-/* RSA modulus n = p*q (up to 4096 bits). */
+/* RSA modulus n = p*q (up to 4096 bits); also used as a temporary work buffer
+   when computing private exponent CRT components. */
 .balign 32
 .globl rsa_n
 rsa_n:

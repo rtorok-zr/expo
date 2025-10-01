@@ -59,6 +59,7 @@ static uint32_t kTestPrimeQ[kRsa2048CofactorNumWords] = {
     0xdd6aff12, 0xf6c55808,
 };
 
+// The first CRT component d_p of the private exponent for the test private key.
 static uint32_t kTestPrivateExponentComponentP[kRsa2048CofactorNumWords] = {
     0x450b9217, 0x4edd47a6, 0x65eaa581, 0xa489536c, 0x46c6416e, 0xcdcd3461,
     0x07ba3fc0, 0x95d56f89, 0xcf3c23f1, 0x3a09db7b, 0x841780f5, 0x3ee50c5d,
@@ -68,6 +69,7 @@ static uint32_t kTestPrivateExponentComponentP[kRsa2048CofactorNumWords] = {
     0x7b1d095d, 0xacc9ede5,
 };
 
+// The first CRT component d_q of the private exponent for the test private key.
 static uint32_t kTestPrivateExponentComponentQ[kRsa2048CofactorNumWords] = {
     0x1294bbf7, 0x8b2919b9, 0x19e6e6bb, 0x5bac57cf, 0x94878d05, 0xdd0297c9,
     0xc2fa4a31, 0x250dbc5d, 0xa6e04ae3, 0xc4f6deb7, 0x5d21fd5f, 0x6e02cdea,
@@ -77,6 +79,7 @@ static uint32_t kTestPrivateExponentComponentQ[kRsa2048CofactorNumWords] = {
     0x50663f6f, 0xb2191d7f,
 };
 
+// The CRT reconstruction coefficient i_q, inverse of q mod p.
 static uint32_t kTestCrtCoefficientQinvP[kRsa2048CofactorNumWords] = {
     0x8678e23f, 0x208181a5, 0x4c846651, 0xd7015b89, 0x75c82ec3, 0x9ab976a8,
     0xdc502277, 0xe354d4f1, 0x57b4eecb, 0x347c059,  0xf98ab29f, 0x38b694ec,
@@ -86,6 +89,8 @@ static uint32_t kTestCrtCoefficientQinvP[kRsa2048CofactorNumWords] = {
     0xae949fc6, 0x267d8cbc,
 };
 
+// The CRT reconstruction coefficient i_p, inverse of p mod q. This is used when
+// we swap the roles of p and q as a second functionality test.
 static uint32_t kTestCrtCoefficientPinvQ[kRsa2048CofactorNumWords] = {
     0xff019a0f, 0x58ec641a, 0xa8b6a4dc, 0x338e8a6a, 0xb98e701c, 0xe710b453,
     0xc7b5ee24, 0x4268bb56, 0xf7474ef4, 0x6f88b191, 0x2079740b, 0x24cf5722,
@@ -164,12 +169,17 @@ static status_t run_key_from_cofactor(const uint32_t *cofactor,
       cofactor_share1, &public_key, &private_key));
   profile_end_and_print(t_start, "RSA keypair from cofactor");
 
-  // Interpret the private key and ensure the private exponent matches the
-  // expected value. Note: This depends on the internal representation of RSA
-  // keyblobs, and will need to be updated if the representation changes.
+  // Interpret the private key and ensure that the cofactors, private exponent
+  // CRT components, and CRT reconstruction coefficient match their expected
+  // values. Note: This depends on the internal representation of RSA keyblobs,
+  // and will need to be updated if the representation changes.
   TRY_CHECK(private_key.keyblob_length == sizeof(rsa_2048_private_key_t));
   rsa_2048_private_key_t *sk = (rsa_2048_private_key_t *)private_key.keyblob;
   if (cofactor_is_p) {
+    // Internally, the key from cofactor logic sets the provided cofactor as
+    // sk->q, and sets sk->p to be the quotient of the RSA modulus by that
+    // cofactor. As such, if the provided cofactor is kTestPrimeP, then we need
+    // to switch the roles of cofactors p and q in our checks below.
     TRY_CHECK_ARRAYS_EQ(sk->p.data, kTestPrimeQ, ARRAYSIZE(kTestPrimeQ));
     TRY_CHECK_ARRAYS_EQ(sk->q.data, kTestPrimeP, ARRAYSIZE(kTestPrimeP));
     TRY_CHECK_ARRAYS_EQ(sk->d_p.data, kTestPrivateExponentComponentQ,
@@ -179,6 +189,8 @@ static status_t run_key_from_cofactor(const uint32_t *cofactor,
     TRY_CHECK_ARRAYS_EQ(sk->i_q.data, kTestCrtCoefficientPinvQ,
                         ARRAYSIZE(kTestCrtCoefficientPinvQ));
   } else {
+    // Otherwise, if the provided cofactor is kTestPrimeQ, then there's no need
+    // to switch the roles of the cofactors.
     TRY_CHECK_ARRAYS_EQ(sk->p.data, kTestPrimeP, ARRAYSIZE(kTestPrimeP));
     TRY_CHECK_ARRAYS_EQ(sk->q.data, kTestPrimeQ, ARRAYSIZE(kTestPrimeQ));
     TRY_CHECK_ARRAYS_EQ(sk->d_p.data, kTestPrivateExponentComponentP,

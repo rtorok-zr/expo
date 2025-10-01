@@ -192,10 +192,10 @@ otcrypto_status_t otcrypto_rsa_private_key_from_exponents(
 
   HARDENED_TRY(rsa_mode_check(private_key->config.key_mode));
 
-  // Ensure that the length of the private exponent shares matches the length
-  // of the modulus.
+  // Ensure that the cofactors, private exponent components, and CRT coefficient
+  // are all the proper length with respect to each other.
   if (p.len != modulus.len / 2 || q.len != modulus.len / 2 ||
-      d_p.len != p.len || d_q.len != q.len) {
+      d_p.len != p.len || d_q.len != q.len || i_q.len != p.len) {
     return OTCRYPTO_BAD_ARGS;
   }
 

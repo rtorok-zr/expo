@@ -25,7 +25,7 @@
 
 /**
  * Mode magic values generated with
- * $ ./util/design/sparse-fsm-encode.py -d 6 -m 6 -n 11 \
+ * $ ./util/design/sparse-fsm-encode.py -d 6 -m 9 -n 11 \
  *      -s 544077332 --avoid-zero
 
  *
@@ -208,8 +208,11 @@ do_modexp:
  * after the number of limbs is set.
  *
  * @param[in]          x30: number of limbs for modulus
- * @param[in]      dmem[n]: n, modulus
- * @param[in]      dmem[d]: d, exponent
+ * @param[in]      dmem[p]: p, first cofactor of modulus n
+ * @param[in]      dmem[q]: q, second cofactor of modulus n
+ * @param[in]      dmem[d_p]: d_p, first CRT component of private exponent d
+ * @param[in]      dmem[d_q]: d_q, second CRT component of private exponent d
+ * @param[in]      dmem[i_q]: i_q, CRT reconstruction coefficient
  * @param[in]  dmem[inout]: a, base for exponentiation
  * @param[out] dmem[inout]: result, a^d mod n
  */
@@ -220,8 +223,12 @@ do_modexp_crt:
   la    x27, p
   la    x28, q
 
-  /* Run exponentiation.
-       dmem[work_buf] = dmem[inout]^dmem[d] mod dmem[n] */
+  /* Run exponentiation. dmem[n] and dmem[d] are used as work buffers.
+       dmem[work_buf] = dmem[inout]^d mod n 
+       where
+         d mod (p - 1) = d_p
+         d mod (q - 1) = d_q
+         n = p * q. */
   la       x2, work_buf
   la       x3, n
   la       x4, d

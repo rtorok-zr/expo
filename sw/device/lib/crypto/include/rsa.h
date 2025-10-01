@@ -84,8 +84,8 @@ enum {
 /**
  * Performs the RSA key generation.
  *
- * Computes RSA private key (d) and RSA public key exponent (e) and
- * modulus (n).
+ * Computes RSA private key (p, q, d_p, d_q, i_q) as well as RSA public key
+ * exponent (e) and modulus (n).
  *
  * The caller should allocate space for the public key and set the `key` and
  * `key_length` fields accordingly.
@@ -130,9 +130,12 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
  *
  * @param size RSA size parameter.
  * @param modulus RSA modulus (n).
- * @param exponent RSA public exponent (e).
- * @param d_share0 First share of the RSA private exponent d.
- * @param d_share1 Second share of the RSA private exponent d.
+ * @param p First cofactor of RSA modulus (p).
+ * @param q Second cofactor of RSA modulus (q).
+ * @param e RSA public exponent (e).
+ * @param d_p First CRT component of the RSA private exponent d (d_p).
+ * @param d_q Second CRT component of the RSA private exponent d (d_q).
+ * @param i_q CRT reconstruction coefficient for given cofactors (i_q).
  * @param[out] public_key Destination public key struct.
  * @return Result of the RSA key construction.
  */

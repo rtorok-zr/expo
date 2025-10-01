@@ -99,8 +99,8 @@ status_t keygen_then_sign_test(void) {
   LOG_INFO("Signature generation complete.");
   LOG_INFO("OTBN instruction count: %u", otbn_instruction_count_get());
 
-  // Try to verify the signature. If something is wrong with the key (nonprime
-  // p and q, incorrect d), then this is likely to fail.
+  // Try to verify the signature. If something is wrong with the key (nonprime p
+  // and q, incorrect CRT components of d, etc.), then this is likely to fail.
   LOG_INFO("Starting signature verification...");
   hardened_bool_t verification_result;
   TRY(otcrypto_rsa_verify(&public_key, msg_digest, kOtcryptoRsaPaddingPkcs,
