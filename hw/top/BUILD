@@ -67,6 +67,11 @@ string_flag(
     for seed in ALL_SEED_NAMES
 ]
 
+opentitan_alias_top_attr(
+    name = "top_gen_hjson",
+    attr_name = "hjson",
+)
+
 # Point to the right top library.
 opentitan_alias_top_attr(
     name = "top_lib",
@@ -153,8 +158,6 @@ cc_library(
         )
         for ip in ALL_IP_NAMES
     ]),
-    # Make the header accessible as "dt_<ip>.h".
-    includes = ["."],
     deps = [":dt_api"] + flatten([
         opentitan_select_ip_attr(
             ip,

@@ -33,6 +33,7 @@ EARLGREY_SKUS = {
         "ownership_libs": ["//sw/device/silicon_creator/lib/ownership:test_owner"],
         "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_b",
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
+        "owner_fw_boot_str": "Bare metal PASS!",
         "ecdsa_key": {},
         "orchestrator_cfg": "@//sw/host/provisioning/orchestrator/configs/skus:emulation.hjson",
     },
@@ -47,6 +48,7 @@ EARLGREY_SKUS = {
         "ownership_libs": ["//sw/device/silicon_creator/lib/ownership:test_owner"],
         "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_cwt_slot_b",
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
+        "owner_fw_boot_str": "Bare metal PASS!",
         "ecdsa_key": {},
         "orchestrator_cfg": "@//sw/host/provisioning/orchestrator/configs/skus:emulation.hjson",
     },
@@ -64,6 +66,7 @@ EARLGREY_SKUS = {
         "ownership_libs": ["//sw/device/silicon_creator/lib/ownership:test_owner"],
         "rom_ext": "//sw/device/silicon_creator/rom_ext:rom_ext_dice_x509_slot_b",
         "owner_fw": "//sw/device/silicon_owner/bare_metal:bare_metal_slot_b",
+        "owner_fw_boot_str": "Bare metal PASS!",
         "ecdsa_key": {},
         "orchestrator_cfg": "@//sw/host/provisioning/orchestrator/configs/skus:emulation.hjson",
     },
@@ -98,7 +101,7 @@ CP_PROVISIONING_INPUTS = _TEST_TOKENS + """
 """
 
 FT_PROVISIONING_INPUTS = _TEST_TOKENS + """
-  --device-id="0x11111111_22222222_33333333_44444444_55555555_66666666_77777777_88888888"
+  --ft-device-id="0x11111111_22222222_33333333_44444444"
   --target-mission-mode-lc-state="prod"
   --rma-unlock-token="0x01234567_89abcdef_01234567_89abcdef"
   --token-encrypt-key-der-file="sw/device/silicon_creator/manuf/keys/fake/rma_unlock_enc_rsa3072.pub.der"

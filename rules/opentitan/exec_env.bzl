@@ -28,11 +28,13 @@ _FIELDS = {
     "data": ("attr.data", False),
     "extract_sw_logs": ("attr.extract_sw_logs", False),
     "otp_mmap": ("file.otp_mmap", False),
+    "top_gen_hjson": ("file.top_gen_hjson", False),
     "top_secret_cfg": ("file.top_secret_cfg", False),
     "otp_data_perm": ("attr.otp_data_perm", False),
     "flash_scramble_tool": ("attr.flash_scramble_tool", False),
     "openocd": ("attr.openocd", False),
     "openocd_adapter_config": ("attr.openocd_adapter_config", False),
+    "slot_spec": ("attr.slot_spec", False),
 }
 
 ExecEnvInfo = provider(
@@ -149,6 +151,10 @@ def exec_env_common_attrs(**kwargs):
             allow_files = True,
             doc = "ROM_EXT image to use in this environment",
         ),
+        "slot_spec": attr.string_dict(
+            default = kwargs.get("slot_spec", {}),
+            doc = "Firmware slot addresses to use in this environment",
+        ),
         "otp": attr.label(
             default = kwargs.get("otp"),
             allow_single_file = True,
@@ -191,6 +197,11 @@ def exec_env_common_attrs(**kwargs):
             allow_single_file = True,
             default = kwargs.get("otp_mmap"),
             doc = "OTP memory map configuration HJSON file.",
+        ),
+        "top_gen_hjson": attr.label(
+            allow_single_file = True,
+            default = "//hw/top:top_gen_hjson",
+            doc = "Generated top configuration file of the top.",
         ),
         "top_secret_cfg": attr.label(
             allow_single_file = True,
@@ -402,5 +413,11 @@ def common_test_setup(ctx, exec_env, firmware):
         data_labels += jtag_data
         data_files += get_files(jtag_data)
         param["jtag_test_cmd"] = jtag_test_cmd
+
+    # Update the actual firmware slot spec
+    slot_spec = dict(exec_env.slot_spec)
+    slot_spec.update(ctx.attr.slot_spec)
+    action_param.update(slot_spec)
+    param.update(slot_spec)
 
     return test_harness, data_labels, data_files, param, action_param

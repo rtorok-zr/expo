@@ -14,7 +14,7 @@ import hjson
 
 from device_id import DeviceId, DeviceIdentificationNumber
 from sku_config import SkuConfig
-from util import confirm, format_hex, run, resolve_runfile
+from util import confirm, format_hex, resolve_runfile, run
 
 # FPGA bitstream.
 _FPGA_UNIVERSAL_SPLICE_BITSTREAM = "hw/bitstream/universal/splice.bit"
@@ -56,6 +56,9 @@ class OtDut():
     test_unlock_token: str
     test_exit_token: str
     fpga: str
+    fpga_dont_clear_bitstream: bool
+    enable_alerts: bool
+    use_ext_clk: bool
     require_confirmation: bool = True
 
     def _make_log_dir(self) -> None:
@@ -113,9 +116,10 @@ class OtDut():
                                            ott_intf=_OTT_FPGA_INTERFACE[self.fpga],
                                            openocd_bin=openocd_bin,
                                            openocd_cfg=openocd_cfg)
-            host_flags += " --clear-bitstream"
-            bitstream = resolve_runfile(_FPGA_UNIVERSAL_SPLICE_BITSTREAM)
-            host_flags += f" --bitstream={bitstream}"
+            if not self.fpga_dont_clear_bitstream:
+                host_flags += " --clear-bitstream"
+                bitstream = resolve_runfile(_FPGA_UNIVERSAL_SPLICE_BITSTREAM)
+                host_flags += f" --bitstream={bitstream}"
             device_elf = device_elf.format(
                 base_dir=self._base_dev_dir(),
                 target=f"fpga_{self.fpga}_rom_with_fake_keys")
@@ -165,6 +169,8 @@ class OtDut():
                 logging.error("cp_device_id not found in CHIP_PROBE_DATA.")
                 confirm()
             else:
+                # This can occur if the orchestrator is provisioning a chip that
+                # has already run through CP, and only needs to execute FT.
                 if chip_probe_data["cp_device_id"] == "":
                     logging.warning(
                         "cp_device_id empty; setting default of all zeros.")
@@ -245,8 +251,9 @@ class OtDut():
         # Write CA configs to a JSON tmpfile.
         ca_config_dict = {
             "dice": self.sku_config.dice_ca.to_dict_entry(),
-            "ext": self.sku_config.ext_ca.to_dict_entry(),
         }
+        if self.sku_config.ext_ca:
+            ca_config_dict["ext"] = self.sku_config.ext_ca.to_dict_entry()
 
         with tempfile.NamedTemporaryFile(mode="w+") as ca_config_file:
             json.dump(ca_config_dict, ca_config_file)
@@ -262,7 +269,7 @@ class OtDut():
             --elf={individ_elf} \
             --bootstrap={perso_bin} \
             --second-bootstrap={fw_bundle_bin} \
-            --device-id="{self.device_id}" \
+            --ft-device-id="0x{hex(self.device_id.sku_specific)[2:].zfill(32)}" \
             --test-unlock-token="{format_hex(self.test_unlock_token, width=32)}" \
             --test-exit-token="{format_hex(self.test_exit_token, width=32)}" \
             --target-mission-mode-lc-state="{self.sku_config.target_lc_state}" \
@@ -274,6 +281,14 @@ class OtDut():
             --ca-config={ca_config_file.name} \
             --token-encrypt-key-der-file={self.sku_config.token_encrypt_key} \
             """
+
+            # Enable alerts during individualization if requested.
+            if self.enable_alerts:
+                cmd += " --enable-alerts-during-individualize"
+
+            # Enable external clock during individualization if requested.
+            if self.use_ext_clk:
+                cmd += " --use-ext-clk-during-individualize"
 
             # Get user confirmation before running command.
             logging.info(f"Running command: {cmd}")
@@ -291,7 +306,15 @@ class OtDut():
             self.ft_data = self._extract_json_data("PROVISIONING_DATA",
                                                    stdout_logfile)
 
-            # TODO: check device ID from device matches one constructed on host.
-            self.device_id = DeviceId.from_hexstr(self.ft_data["device_id"])
+            # Check device ID from OTP matches one constructed on host.
+            device_id_in_otp = DeviceId.from_hexstr(self.ft_data["device_id"])
+            if device_id_in_otp != self.device_id:
+                logging.error(
+                    "Device ID from OTP does not match expected on host.")
+                logging.error(
+                    f"Final (device) DeviceId: {device_id_in_otp.to_hexstr()}")
+                logging.error(
+                    f"Final (host)   DeviceId: {self.device_id.to_hexstr()}")
+                confirm()
 
             logging.info("FT completed successfully.")

@@ -10,7 +10,6 @@ load(
     "opentitan_require_ip_attr",
     "opentitan_require_top_attr",
     "opentitan_select_ip_attr",
-    "opentitan_select_top_attr",
 )
 
 """Autogeneration rules for OpenTitan.
@@ -54,7 +53,6 @@ def _opentitan_ip_c_header_impl(ctx):
 
     return [
         CcInfo(compilation_context = cc_common.create_compilation_context(
-            includes = depset([header.dirname]),
             headers = depset([header]),
         )),
         DefaultInfo(files = depset([header])),
@@ -343,7 +341,7 @@ def opentitan_top_dt_gen(name, gen_ips = [], gen_top = False, output_groups = {}
             for ip in gen_ips
         ]),
         output_groups = output_groups,
-        top_hjson = opentitan_select_top_attr("hjson"),
+        top_hjson = "//hw/top:top_gen_hjson",
         target_compatible_with = target_compatible_with + opentitan_require_top_attr("hjson") + flatten([
             opentitan_require_ip_attr(ip, "hjson")
             for ip in gen_ips
@@ -410,8 +408,6 @@ def opentitan_top_dt_api(name, deps = None):
         srcs = [":{}_src".format(name)],
         hdrs = [":{}_hdr".format(name)],
         deps = deps,
-        # Make the dt_api.h header accessible as "dt/dt_api.h".
-        includes = ["."],
     )
 
 def _opentitan_autogen_testutils_gen(ctx):
@@ -495,7 +491,7 @@ def opentitan_autogen_isr_testutils(name, ips = [], deps = [], target_compatible
             opentitan_select_ip_attr(ip, "hjson", required = False, default = [], fn = lambda x: [x])
             for ip in ips
         ]),
-        top_hjson = opentitan_select_top_attr("hjson"),
+        top_hjson = "//hw/top:top_gen_hjson",
         output_groups = {
             "hdr": ["isr_testutils.h"],
             "src": ["isr_testutils.c"],

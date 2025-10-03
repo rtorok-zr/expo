@@ -196,24 +196,31 @@ opentitan_test(
         linker_script = "//sw/device/silicon_creator/manuf/lib:sram_program_linker_script",
         deps = [
             ":flash_info_permissions",
+            "//hw/top:alert_handler_c_regs",
             "//hw/top_earlgrey/sw/autogen:top_earlgrey",
             "//sw/device/lib/arch:device",
             "//sw/device/lib/base:abs_mmio",
             "//sw/device/lib/base:macros",
             "//sw/device/lib/crypto/drivers:entropy",
+            "//sw/device/lib/dif:alert_handler",
+            "//sw/device/lib/dif:clkmgr",
             "//sw/device/lib/dif:flash_ctrl",
             "//sw/device/lib/dif:otp_ctrl",
             "//sw/device/lib/dif:pinmux",
             "//sw/device/lib/runtime:hart",
+            "//sw/device/lib/runtime:ibex",
             "//sw/device/lib/runtime:log",
             "//sw/device/lib/testing:flash_ctrl_testutils",
             "//sw/device/lib/testing:otp_ctrl_testutils",
             "//sw/device/lib/testing:pinmux_testutils",
             "//sw/device/lib/testing/test_framework:check",
             "//sw/device/lib/testing/test_framework:ottf_console",
+            "//sw/device/lib/testing/test_framework:ottf_isrs",
             "//sw/device/lib/testing/test_framework:ottf_test_config",
             "//sw/device/lib/testing/test_framework:status",
             "//sw/device/lib/testing/test_framework:ujson_ottf",
+            "//sw/device/silicon_creator/lib/drivers:ibex",
+            "//sw/device/silicon_creator/lib/drivers:rstmgr",
             "//sw/device/silicon_creator/manuf/lib:flash_info_fields",
             "//sw/device/silicon_creator/manuf/lib:individualize",
             "//sw/device/silicon_creator/manuf/lib:otp_fields",
@@ -356,10 +363,11 @@ manifest(d = {
 ]
 
 _FT_PROVISIONING_CMD_ARGS = """
-  --elf={sram_ft_individualize}
-  --bootstrap={ft_personalize}
-  --second-bootstrap={bundle}
-  --ca-config={ca_config}
+  --elf={{sram_ft_individualize}}
+  --bootstrap={{ft_personalize}}
+  --second-bootstrap={{bundle}}
+  --ca-config={{ca_config}}
+  --owner-success-text="{owner_fw_boot_str}"
 """ + FT_PROVISIONING_INPUTS
 
 _FT_PROVISIONING_HARNESS = "//sw/host/provisioning/ft:ft_{}"
@@ -435,7 +443,9 @@ filegroup(
                 "lc_test_locked0",
                 "manuf",
             ] + (["manual"] if config.get("offline", False) else []),
-            test_cmd = _FT_PROVISIONING_CMD_ARGS,
+            test_cmd = _FT_PROVISIONING_CMD_ARGS.format(
+                owner_fw_boot_str = config.get("owner_fw_boot_str", ""),
+            ),
             test_harness = _FT_PROVISIONING_HARNESS.format(sku),
         ),
         silicon = silicon_params(
@@ -458,7 +468,9 @@ filegroup(
             owner_slot_b = OWNER_SLOTS["b"],
             rom_ext_slot_a = SLOTS["a"],
             rom_ext_slot_b = SLOTS["b"],
-            test_cmd = _FT_PROVISIONING_CMD_ARGS,
+            test_cmd = _FT_PROVISIONING_CMD_ARGS.format(
+                owner_fw_boot_str = config.get("owner_fw_boot_str", ""),
+            ),
             test_harness = _FT_PROVISIONING_HARNESS.format(sku),
         ),
     )
