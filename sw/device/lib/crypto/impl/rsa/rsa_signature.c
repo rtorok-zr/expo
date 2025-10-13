@@ -170,7 +170,6 @@ status_t rsa_signature_generate_2048_finalize(rsa_2048_int_t *signature) {
   return rsa_modexp_2048_finalize(signature);
 }
 
-
 /**
  * Ensure that the provided RSA-2048 signature is reduced with respect to the
  * provided RSA-2048 public key's modulus.
@@ -182,7 +181,6 @@ status_t rsa_signature_generate_2048_finalize(rsa_2048_int_t *signature) {
 OT_WARN_UNUSED_RESULT
 static status_t rsa_signature_reduced_check_2048(
     const rsa_2048_public_key_t *public_key, const rsa_2048_int_t *signature) {
-
   hardened_bool_t borrow = kHardenedBoolTrue;
   size_t i = 0;
   for (; launder32(i) < kRsa2048NumWords; i++) {
@@ -203,7 +201,6 @@ static status_t rsa_signature_reduced_check_2048(
   }
   HARDENED_CHECK_EQ(borrow, kHardenedBoolFalse);
   return OTCRYPTO_OK;
-
 }
 
 status_t rsa_signature_verify_2048_start(
@@ -288,7 +285,6 @@ status_t rsa_signature_generate_3072_finalize(rsa_3072_int_t *signature) {
 OT_WARN_UNUSED_RESULT
 static status_t rsa_signature_reduced_check_3072(
     const rsa_3072_public_key_t *public_key, const rsa_3072_int_t *signature) {
-
   hardened_bool_t borrow = kHardenedBoolTrue;
   size_t i = 0;
   for (; launder32(i) < kRsa3072NumWords; i++) {
@@ -309,7 +305,6 @@ static status_t rsa_signature_reduced_check_3072(
   }
   HARDENED_CHECK_EQ(borrow, kHardenedBoolFalse);
   return OTCRYPTO_OK;
-
 }
 
 status_t rsa_signature_verify_3072_start(
@@ -352,7 +347,6 @@ status_t rsa_signature_generate_4096_finalize(rsa_4096_int_t *signature) {
 OT_WARN_UNUSED_RESULT
 static status_t rsa_signature_reduced_check_4096(
     const rsa_4096_public_key_t *public_key, const rsa_4096_int_t *signature) {
-
   hardened_bool_t borrow = kHardenedBoolTrue;
   size_t i = 0;
   for (; launder32(i) < kRsa4096NumWords; i++) {
@@ -373,7 +367,6 @@ static status_t rsa_signature_reduced_check_4096(
   }
   HARDENED_CHECK_EQ(borrow, kHardenedBoolFalse);
   return OTCRYPTO_OK;
-
 }
 
 status_t rsa_signature_verify_4096_start(
