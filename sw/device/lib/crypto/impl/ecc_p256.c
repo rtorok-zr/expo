@@ -208,8 +208,8 @@ static status_t internal_p256_keygen_finalize(
     hardened_memshred(private_key->keyblob,
                       keyblob_num_words(private_key->config));
 
-    HARDENED_TRY(
-        p256_keygen_finalize((p256_masked_scalar_t *)private_key->keyblob, pk));
+    p256_masked_scalar_t *sk = (p256_masked_scalar_t *)private_key->keyblob;
+    HARDENED_TRY(p256_keygen_finalize(sk, pk));
   } else {
     return OTCRYPTO_BAD_ARGS;
   }
@@ -277,8 +277,8 @@ otcrypto_status_t otcrypto_ecdsa_p256_sign_async_start(
   if (launder32(private_key->config.hw_backed) == kHardenedBoolFalse) {
     // Start the asynchronous signature-generation routine.
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolFalse);
-    HARDENED_TRY(p256_ecdsa_sign_start(
-        message_digest.data, (p256_masked_scalar_t *)private_key->keyblob));
+    p256_masked_scalar_t *sk = (p256_masked_scalar_t *)private_key->keyblob;
+    return p256_ecdsa_sign_start(message_digest.data, sk);
   } else if (launder32(private_key->config.hw_backed) == kHardenedBoolTrue) {
     // Load the key and start in sideloaded-key mode.
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolTrue);
@@ -290,9 +290,9 @@ otcrypto_status_t otcrypto_ecdsa_p256_sign_async_start(
   }
 
   // To detect forgeries of the pointer to the private key that we have passed
-  // to the ECC implementation, check again its integrity. If the pointer would
+  // to the ECC implementation, check its integrity again. If the pointer would
   // have been tampered with between the first integrity check we did when
-  // entering the CryptoLib and here, we would detect this now.
+  // entering cryptolib and here, we would detect this now.
   HARDENED_CHECK_EQ(integrity_blinded_key_check(private_key),
                     kHardenedBoolTrue);
 
@@ -383,9 +383,9 @@ otcrypto_status_t otcrypto_ecdsa_p256_verify_async_start(
   HARDENED_TRY(p256_ecdsa_verify_start(sig, message_digest.data, pk));
 
   // To detect forgeries of the pointer to the public key that we have passed
-  // to the ECC implementation, check again its integrity. If the pointer would
+  // to the ECC implementation, check its integrity again. If the pointer would
   // have been tampered with between the first integrity check we did when
-  // entering the CryptoLib and here, we would detect this now.
+  // entering cryptolib and here, we would detect this now.
   HARDENED_CHECK_EQ(integrity_unblinded_key_check(public_key),
                     kHardenedBoolTrue);
   return OTCRYPTO_OK;
@@ -478,17 +478,17 @@ otcrypto_status_t otcrypto_ecdh_p256_async_start(
     HARDENED_TRY(p256_sideload_ecdh_start(pk));
   } else if (launder32(private_key->config.hw_backed) == kHardenedBoolFalse) {
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolFalse);
-    HARDENED_TRY(
-        p256_ecdh_start((p256_masked_scalar_t *)private_key->keyblob, pk));
+    p256_masked_scalar_t *sk = (p256_masked_scalar_t *)private_key->keyblob;
+    HARDENED_TRY(p256_ecdh_start(sk, pk));
   } else {
     // Invalid value for `hw_backed`.
     return OTCRYPTO_BAD_ARGS;
   }
 
   // To detect forgeries of the pointer to the public key that we have passed
-  // to the ECC implementation, check again its integrity. If the pointer would
+  // to the ECC implementation, check its integrity again. If the pointer would
   // have been tampered with between the first integrity check we did when
-  // entering the CryptoLib and here, we would detect this now.
+  // entering cryptolib and here, we would detect this now.
   HARDENED_CHECK_EQ(integrity_blinded_key_check(private_key),
                     kHardenedBoolTrue);
   HARDENED_CHECK_EQ(integrity_unblinded_key_check(public_key),
