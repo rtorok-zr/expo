@@ -7,6 +7,7 @@ use clap::Args;
 use humantime::parse_duration;
 use std::time::Duration;
 
+use super::{Backend, BackendOpts, define_interface};
 use crate::transport::Transport;
 use crate::transport::verilator::{Options, Verilator};
 
@@ -15,10 +16,12 @@ pub struct VerilatorOpts {
     #[arg(long, default_value_t)]
     verilator_bin: String,
 
-    #[arg(long, default_value_t)]
-    verilator_rom: String,
+    #[arg(long, required = false)]
+    verilator_rom: Vec<String>,
     #[arg(long, required = false)]
     verilator_flash: Vec<String>,
+    #[arg(long, default_value_t)]
+    verilator_ctn_ram: String,
     #[arg(long, default_value_t)]
     verilator_otp: String,
 
@@ -30,14 +33,27 @@ pub struct VerilatorOpts {
     verilator_timeout: Duration,
 }
 
-pub fn create(args: &VerilatorOpts) -> Result<Box<dyn Transport>> {
-    let options = Options {
-        executable: args.verilator_bin.clone(),
-        rom_image: args.verilator_rom.clone(),
-        flash_images: args.verilator_flash.clone(),
-        otp_image: args.verilator_otp.clone(),
-        extra_args: args.verilator_args.clone(),
-        timeout: args.verilator_timeout,
-    };
-    Ok(Box::new(Verilator::from_options(options)?))
+struct VerilatorBackend;
+
+impl Backend for VerilatorBackend {
+    type Opts = VerilatorOpts;
+
+    fn create_transport(_: &BackendOpts, args: &VerilatorOpts) -> Result<Box<dyn Transport>> {
+        let options = Options {
+            executable: args.verilator_bin.clone(),
+            rom_images: args.verilator_rom.clone(),
+            flash_images: args.verilator_flash.clone(),
+            ctn_ram_image: args.verilator_ctn_ram.clone(),
+            otp_image: args.verilator_otp.clone(),
+            extra_args: args.verilator_args.clone(),
+            timeout: args.verilator_timeout,
+        };
+        Ok(Box::new(Verilator::from_options(options)?))
+    }
 }
+
+define_interface!(
+    "verilator",
+    VerilatorBackend,
+    "/__builtin__/opentitan_verilator.json5"
+);
