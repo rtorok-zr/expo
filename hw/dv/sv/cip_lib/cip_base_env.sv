@@ -51,7 +51,17 @@ class cip_base_env #(type CFG_T               = cip_base_env_cfg,
       m_tl_reg_adapters[i].cfg = cfg.m_tl_agent_cfgs[i];
       uvm_config_db#(tl_agent_cfg)::set(this, $sformatf("m_tl_agent_%s*", i), "cfg",
                                         cfg.m_tl_agent_cfgs[i]);
-      cfg.m_tl_agent_cfgs[i].en_cov = cfg.en_cov;
+      cfg.m_tl_agent_cfgs[i].en_cov       = cfg.en_cov;
+
+      if (cfg.reset_domains.exists({"reset_domain_", i})) begin
+        `uvm_info(get_full_name(), {"reset domain: reset_domain_", i,
+                                    " assigned to m_tl_agent[", i,"]"}, UVM_LOW)
+        cfg.m_tl_agent_cfgs[i].reset_domain = cfg.reset_domains[{"reset_domain_", i}];
+      end else begin
+        `uvm_info(get_full_name(), {"Using default reset domain for: m_tl_agent[", i,"]"}, UVM_LOW)
+        cfg.m_tl_agent_cfgs[i].reset_domain = cfg.reset_domain;
+      end
+
     end
 
     // Create & configure the alert agents.

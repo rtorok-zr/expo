@@ -31,7 +31,7 @@ class dv_base_agent #(type CFG_T            = dv_base_agent_cfg,
 
     // create components
     if (cfg.en_cov) begin
-      cov = COV_T ::type_id::create("cov", this);
+      cov = COV_T::type_id::create("cov", this);
       cov.cfg = cfg;
     end
 
@@ -63,5 +63,4 @@ class dv_base_agent #(type CFG_T            = dv_base_agent_cfg,
       monitor.rsp_analysis_port.connect(sequencer.rsp_analysis_fifo.analysis_export);
     end
   endfunction
-
 endclass
