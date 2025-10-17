@@ -41,6 +41,29 @@ otcrypto_status_t otcrypto_ecdsa_p256_verify(
                                                    verification_result);
 }
 
+otcrypto_status_t otcrypto_ecdsa_p256_sign_verify(
+    const otcrypto_blinded_key_t *private_key,
+    const otcrypto_unblinded_key_t *public_key,
+    const otcrypto_hash_digest_t message_digest,
+    otcrypto_word32_buf_t signature) {
+  // Signature generation.
+  HARDENED_TRY(
+      otcrypto_ecdsa_p256_sign(private_key, message_digest, signature));
+
+  // Verify signature before releasing it.
+  otcrypto_const_word32_buf_t signature_check = {
+      .data = signature.data,
+      .len = signature.len,
+  };
+  hardened_bool_t verification_result = kHardenedBoolFalse;
+  HARDENED_TRY(otcrypto_ecdsa_p256_verify(
+      public_key, message_digest, signature_check, &verification_result));
+
+  // Trap if signature verification failed.
+  HARDENED_CHECK_EQ(verification_result, kHardenedBoolTrue);
+  return OTCRYPTO_OK;
+}
+
 otcrypto_status_t otcrypto_ecdh_p256_keygen(
     otcrypto_blinded_key_t *private_key, otcrypto_unblinded_key_t *public_key) {
   HARDENED_TRY(otcrypto_ecdh_p256_keygen_async_start(private_key));
@@ -283,11 +306,20 @@ otcrypto_status_t otcrypto_ecdsa_p256_sign_async_start(
     // Load the key and start in sideloaded-key mode.
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolTrue);
     HARDENED_TRY(keyblob_sideload_key_otbn(private_key));
-    return p256_ecdsa_sideload_sign_start(message_digest.data);
+    HARDENED_TRY(p256_ecdsa_sideload_sign_start(message_digest.data));
+  } else {
+    // Invalid value for private_key->hw_backed.
+    return OTCRYPTO_BAD_ARGS;
   }
 
-  // Invalid value for private_key->hw_backed.
-  return OTCRYPTO_BAD_ARGS;
+  // To detect forgeries of the pointer to the private key that we have passed
+  // to the ECC implementation, check its integrity again. If the pointer would
+  // have been tampered with between the first integrity check we did when
+  // entering cryptolib and here, we would detect this now.
+  HARDENED_CHECK_EQ(integrity_blinded_key_check(private_key),
+                    kHardenedBoolTrue);
+
+  return OTCRYPTO_OK;
 }
 
 /**
@@ -371,7 +403,15 @@ otcrypto_status_t otcrypto_ecdsa_p256_verify_async_start(
   p256_ecdsa_signature_t *sig = (p256_ecdsa_signature_t *)signature.data;
 
   // Start the asynchronous signature-verification routine.
-  return p256_ecdsa_verify_start(sig, message_digest.data, pk);
+  HARDENED_TRY(p256_ecdsa_verify_start(sig, message_digest.data, pk));
+
+  // To detect forgeries of the pointer to the public key that we have passed
+  // to the ECC implementation, check its integrity again. If the pointer would
+  // have been tampered with between the first integrity check we did when
+  // entering cryptolib and here, we would detect this now.
+  HARDENED_CHECK_EQ(integrity_unblinded_key_check(public_key),
+                    kHardenedBoolTrue);
+  return OTCRYPTO_OK;
 }
 
 otcrypto_status_t otcrypto_ecdsa_p256_verify_async_finalize(
@@ -458,15 +498,26 @@ otcrypto_status_t otcrypto_ecdh_p256_async_start(
   if (launder32(private_key->config.hw_backed) == kHardenedBoolTrue) {
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolTrue);
     HARDENED_TRY(keyblob_sideload_key_otbn(private_key));
-    return p256_sideload_ecdh_start(pk);
+    HARDENED_TRY(p256_sideload_ecdh_start(pk));
   } else if (launder32(private_key->config.hw_backed) == kHardenedBoolFalse) {
     HARDENED_CHECK_EQ(private_key->config.hw_backed, kHardenedBoolFalse);
     p256_masked_scalar_t *sk = (p256_masked_scalar_t *)private_key->keyblob;
-    return p256_ecdh_start(sk, pk);
+    HARDENED_TRY(p256_ecdh_start(sk, pk));
+  } else {
+    // Invalid value for `hw_backed`.
+    return OTCRYPTO_BAD_ARGS;
   }
 
-  // Invalid value for `hw_backed`.
-  return OTCRYPTO_BAD_ARGS;
+  // To detect forgeries of the pointer to the public key that we have passed
+  // to the ECC implementation, check its integrity again. If the pointer would
+  // have been tampered with between the first integrity check we did when
+  // entering cryptolib and here, we would detect this now.
+  HARDENED_CHECK_EQ(integrity_blinded_key_check(private_key),
+                    kHardenedBoolTrue);
+  HARDENED_CHECK_EQ(integrity_unblinded_key_check(public_key),
+                    kHardenedBoolTrue);
+
+  return OTCRYPTO_OK;
 }
 
 otcrypto_status_t otcrypto_ecdh_p256_async_finalize(
