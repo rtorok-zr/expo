@@ -18,15 +18,8 @@ use crate::io::jtag::{JtagChain, JtagParams};
 use crate::io::spi::Target;
 use crate::io::uart::Uart;
 
-pub mod chip_whisperer;
 pub mod common;
-pub mod dediprog;
-pub mod ftdi;
-pub mod hyperdebug;
 pub mod ioexpander;
-pub mod proxy;
-pub mod ti50emulator;
-pub mod verilator;
 
 // Export custom error types
 mod errors;
@@ -62,7 +55,7 @@ pub struct Capabilities {
 impl Capabilities {
     /// Create a new Capabilities object representing a provider of
     /// capabilities specified by `cap`.
-    fn new(cap: Capability) -> Self {
+    pub fn new(cap: Capability) -> Self {
         Self { capabilities: cap }
     }
 
@@ -151,7 +144,7 @@ pub trait Transport {
     }
 
     /// Invoke non-standard functionality of some Transport implementations.
-    fn dispatch(&self, _action: &dyn Any) -> Result<Option<Box<dyn serde_annotate::Annotate>>> {
+    fn dispatch(&self, _action: &dyn Any) -> Result<Option<Box<dyn erased_serde::Serialize>>> {
         Err(TransportError::UnsupportedOperation.into())
     }
 

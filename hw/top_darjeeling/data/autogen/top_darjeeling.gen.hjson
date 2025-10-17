@@ -347,20 +347,6 @@
         clock: main
       }
       {
-        name: sys_io_div4
-        gen: true
-        type: top
-        domains:
-        [
-          Aon
-        ]
-        shadowed: false
-        sw: false
-        path: rstmgr_aon_resets.rst_sys_io_div4_n
-        parent: sys_src
-        clock: io_div4
-      }
-      {
         name: spi_device
         gen: true
         type: top
@@ -542,6 +528,7 @@
         clk_i: clkmgr_aon_clocks.clk_io_div4_peri
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -1101,6 +1088,7 @@
         clk_i: clkmgr_aon_clocks.clk_io_div4_timers
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -1322,6 +1310,23 @@
           default: lc_ctrl_pkg::Off
           inst_name: otp_ctrl
           top_signame: lc_ctrl_lc_seed_hw_rd_en
+          index: -1
+        }
+        {
+          name: lc_rma_state
+          desc:
+            '''
+            This signal states whether the current life cycle is RMA.
+            It is used to enable SW read access to (read-locked) partitions in the RMA state.
+            '''
+          struct: lc_tx
+          package: lc_ctrl_pkg
+          type: uni
+          act: rcv
+          width: 1
+          default: lc_ctrl_pkg::Off
+          inst_name: otp_ctrl
+          top_signame: lc_ctrl_lc_rma_state
           index: -1
         }
         {
@@ -2246,6 +2251,20 @@
           end_idx: -1
           top_type: broadcast
           top_signame: lc_ctrl_lc_seed_hw_rd_en
+          index: -1
+        }
+        {
+          name: lc_rma_state
+          struct: lc_tx
+          package: lc_ctrl_pkg
+          type: uni
+          act: req
+          width: 1
+          default: lc_ctrl_pkg::Off
+          inst_name: lc_ctrl
+          end_idx: -1
+          top_type: broadcast
+          top_signame: lc_ctrl_lc_rma_state
           index: -1
         }
         {
@@ -3277,6 +3296,7 @@
         clk_aon_i: clk_aon_i
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -3524,11 +3544,6 @@
           name: lc_aon
           domain: Aon
         }
-        rst_sys_ni:
-        {
-          name: sys_io_div4
-          domain: Aon
-        }
       }
       domain:
       [
@@ -3637,6 +3652,7 @@
         clk_aon_i: clkmgr_aon_clocks.clk_aon_timers
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -3815,6 +3831,7 @@
         clk_ast_rng_i: clkmgr_aon_clocks.clk_main_secure
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -4971,6 +4988,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_secure
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -5244,6 +5262,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_hmac
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -6538,6 +6557,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_secure
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -6624,6 +6644,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_secure
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -7867,6 +7888,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8053,6 +8075,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8239,6 +8262,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8425,6 +8449,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8611,6 +8636,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8797,6 +8823,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -8983,6 +9010,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -9169,6 +9197,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -9355,6 +9384,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -9541,6 +9571,7 @@
         clk_i: clkmgr_aon_clocks.clk_main_infra
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -9707,6 +9738,7 @@
         clk_i: clkmgr_aon_clocks.clk_io_div4_secure
       }
       param_decl: {}
+      memory: {}
       param_list: []
       inter_signal_list:
       [
@@ -9793,6 +9825,40 @@
           default: lc_ctrl_pkg::Off
           inst_name: soc_dbg_ctrl
           top_signame: lc_ctrl_lc_raw_test_rma
+          index: -1
+        }
+        {
+          name: lc_cpu_en
+          desc:
+            '''
+            CPU enable qualifier coming from life cycle controller.
+            Indication from life cycle controller that the CPU is running.
+            '''
+          struct: lc_tx
+          package: lc_ctrl_pkg
+          type: uni
+          act: rcv
+          width: 1
+          default: lc_ctrl_pkg::Off
+          inst_name: soc_dbg_ctrl
+          top_signame: lc_ctrl_lc_cpu_en
+          index: -1
+        }
+        {
+          name: lc_rma_state
+          desc:
+            '''
+            RMA state qualifier coming from life cycle controller.
+            Indication from life cycle controller that the RMA state is active.
+            '''
+          struct: lc_tx
+          package: lc_ctrl_pkg
+          type: uni
+          act: rcv
+          width: 1
+          default: lc_ctrl_pkg::Off
+          inst_name: soc_dbg_ctrl
+          top_signame: lc_ctrl_lc_rma_state
           index: -1
         }
         {
@@ -11097,7 +11163,6 @@
       ]
     }
   ]
-  memory: []
   port:
   [
     {
@@ -11371,6 +11436,7 @@
       lc_ctrl.lc_cpu_en:
       [
         rv_core_ibex.lc_cpu_en
+        soc_dbg_ctrl.lc_cpu_en
       ]
       lc_ctrl.lc_keymgr_en:
       [
@@ -11412,6 +11478,11 @@
       lc_ctrl.lc_seed_hw_rd_en:
       [
         otp_ctrl.lc_seed_hw_rd_en
+      ]
+      lc_ctrl.lc_rma_state:
+      [
+        otp_ctrl.lc_rma_state
+        soc_dbg_ctrl.lc_rma_state
       ]
       otp_ctrl.otp_macro:
       [
@@ -21729,6 +21800,23 @@
         index: -1
       }
       {
+        name: lc_rma_state
+        desc:
+          '''
+          This signal states whether the current life cycle is RMA.
+          It is used to enable SW read access to (read-locked) partitions in the RMA state.
+          '''
+        struct: lc_tx
+        package: lc_ctrl_pkg
+        type: uni
+        act: rcv
+        width: 1
+        default: lc_ctrl_pkg::Off
+        inst_name: otp_ctrl
+        top_signame: lc_ctrl_lc_rma_state
+        index: -1
+      }
+      {
         name: lc_check_byp_en
         desc:
           '''
@@ -22395,6 +22483,20 @@
         end_idx: -1
         top_type: broadcast
         top_signame: lc_ctrl_lc_seed_hw_rd_en
+        index: -1
+      }
+      {
+        name: lc_rma_state
+        struct: lc_tx
+        package: lc_ctrl_pkg
+        type: uni
+        act: req
+        width: 1
+        default: lc_ctrl_pkg::Off
+        inst_name: lc_ctrl
+        end_idx: -1
+        top_type: broadcast
+        top_signame: lc_ctrl_lc_rma_state
         index: -1
       }
       {
@@ -27079,6 +27181,40 @@
         index: -1
       }
       {
+        name: lc_cpu_en
+        desc:
+          '''
+          CPU enable qualifier coming from life cycle controller.
+          Indication from life cycle controller that the CPU is running.
+          '''
+        struct: lc_tx
+        package: lc_ctrl_pkg
+        type: uni
+        act: rcv
+        width: 1
+        default: lc_ctrl_pkg::Off
+        inst_name: soc_dbg_ctrl
+        top_signame: lc_ctrl_lc_cpu_en
+        index: -1
+      }
+      {
+        name: lc_rma_state
+        desc:
+          '''
+          RMA state qualifier coming from life cycle controller.
+          Indication from life cycle controller that the RMA state is active.
+          '''
+        struct: lc_tx
+        package: lc_ctrl_pkg
+        type: uni
+        act: rcv
+        width: 1
+        default: lc_ctrl_pkg::Off
+        inst_name: soc_dbg_ctrl
+        top_signame: lc_ctrl_lc_rma_state
+        index: -1
+      }
+      {
         name: halt_cpu_boot
         desc: External request to halt the CPU until a JTAG command allows the boot process to continue.
         struct: logic
@@ -31028,6 +31164,17 @@
         package: lc_ctrl_pkg
         struct: lc_tx
         signame: lc_ctrl_lc_seed_hw_rd_en
+        width: 1
+        type: uni
+        end_idx: -1
+        act: req
+        suffix: ""
+        default: lc_ctrl_pkg::Off
+      }
+      {
+        package: lc_ctrl_pkg
+        struct: lc_tx
+        signame: lc_ctrl_lc_rma_state
         width: 1
         type: uni
         end_idx: -1

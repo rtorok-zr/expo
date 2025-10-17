@@ -609,6 +609,7 @@ module top_darjeeling #(
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_creator_seed_sw_rw_en;
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_owner_seed_sw_rw_en;
   lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_seed_hw_rd_en;
+  lc_ctrl_pkg::lc_tx_t       lc_ctrl_lc_rma_state;
   otp_ctrl_macro_pkg::otp_ctrl_macro_req_t       otp_ctrl_otp_macro_req;
   otp_ctrl_macro_pkg::otp_ctrl_macro_rsp_t       otp_ctrl_otp_macro_rsp;
   logic       rv_plic_msip;
@@ -1005,15 +1006,11 @@ module top_darjeeling #(
     prim_mubi_pkg::mubi4_t unused_rst_en_20;
     assign unused_rst_en_20 = rstmgr_aon_rst_en.sys[rstmgr_pkg::DomainAonSel];
     prim_mubi_pkg::mubi4_t unused_rst_en_21;
-    assign unused_rst_en_21 = rstmgr_aon_rst_en.sys_io_div4[rstmgr_pkg::DomainAonSel];
+    assign unused_rst_en_21 = rstmgr_aon_rst_en.spi_device[rstmgr_pkg::DomainAonSel];
     prim_mubi_pkg::mubi4_t unused_rst_en_22;
-    assign unused_rst_en_22 = rstmgr_aon_rst_en.sys_io_div4[rstmgr_pkg::Domain0Sel];
+    assign unused_rst_en_22 = rstmgr_aon_rst_en.spi_host0[rstmgr_pkg::DomainAonSel];
     prim_mubi_pkg::mubi4_t unused_rst_en_23;
-    assign unused_rst_en_23 = rstmgr_aon_rst_en.spi_device[rstmgr_pkg::DomainAonSel];
-    prim_mubi_pkg::mubi4_t unused_rst_en_24;
-    assign unused_rst_en_24 = rstmgr_aon_rst_en.spi_host0[rstmgr_pkg::DomainAonSel];
-    prim_mubi_pkg::mubi4_t unused_rst_en_25;
-    assign unused_rst_en_25 = rstmgr_aon_rst_en.i2c0[rstmgr_pkg::DomainAonSel];
+    assign unused_rst_en_23 = rstmgr_aon_rst_en.i2c0[rstmgr_pkg::DomainAonSel];
 //VCS coverage on
 // pragma coverage on
 
@@ -1249,6 +1246,7 @@ module top_darjeeling #(
       .lc_creator_seed_sw_rw_en_i(lc_ctrl_lc_creator_seed_sw_rw_en),
       .lc_owner_seed_sw_rw_en_i(lc_ctrl_lc_owner_seed_sw_rw_en),
       .lc_seed_hw_rd_en_i(lc_ctrl_lc_seed_hw_rd_en),
+      .lc_rma_state_i(lc_ctrl_lc_rma_state),
       .lc_check_byp_en_i(lc_ctrl_lc_check_byp_en),
       .otp_keymgr_key_o(otp_ctrl_otp_keymgr_key),
       .sram_otp_key_i(otp_ctrl_sram_otp_key_req),
@@ -1365,6 +1363,7 @@ module top_darjeeling #(
       .lc_iso_part_sw_rd_en_o(),
       .lc_iso_part_sw_wr_en_o(),
       .lc_seed_hw_rd_en_o(lc_ctrl_lc_seed_hw_rd_en),
+      .lc_rma_state_o(lc_ctrl_lc_rma_state),
       .lc_keymgr_div_o(lc_ctrl_lc_keymgr_div),
       .otp_device_id_i(lc_ctrl_otp_device_id),
       .otp_manuf_state_i(lc_ctrl_otp_manuf_state),
@@ -1632,8 +1631,7 @@ module top_darjeeling #(
       .clk_i (clkmgr_aon_clocks.clk_io_div4_powerup),
       .clk_aon_i (clkmgr_aon_clocks.clk_aon_powerup),
       .rst_ni (rstmgr_aon_resets.rst_lc_io_div4_n[rstmgr_pkg::DomainAonSel]),
-      .rst_aon_ni (rstmgr_aon_resets.rst_lc_aon_n[rstmgr_pkg::DomainAonSel]),
-      .rst_sys_ni (rstmgr_aon_resets.rst_sys_io_div4_n[rstmgr_pkg::DomainAonSel])
+      .rst_aon_ni (rstmgr_aon_resets.rst_lc_aon_n[rstmgr_pkg::DomainAonSel])
   );
   aon_timer #(
     .AlertAsyncOn(alert_handler_reg_pkg::AsyncOn[20:20]),
@@ -2744,6 +2742,8 @@ module top_darjeeling #(
       .lc_hw_debug_en_i(lc_ctrl_lc_hw_debug_en),
       .lc_dft_en_i(lc_ctrl_lc_dft_en),
       .lc_raw_test_rma_i(lc_ctrl_lc_raw_test_rma),
+      .lc_cpu_en_i(lc_ctrl_lc_cpu_en),
+      .lc_rma_state_i(lc_ctrl_lc_rma_state),
       .halt_cpu_boot_i(debug_halt_cpu_boot_i),
       .continue_cpu_boot_o(pwrmgr_aon_rom_ctrl[2]),
       .core_tl_i(soc_dbg_ctrl_core_tl_req),

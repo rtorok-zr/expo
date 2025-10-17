@@ -158,7 +158,6 @@
       { name: "lc_io_div2",     gen: true,  type: "top", parent: "lc_src",  clock: "io_div2" }
       { name: "lc_io_div4",     gen: true,  type: "top", parent: "lc_src",  clock: "io_div4" }
       { name: "sys",            gen: true,  type: "top", parent: "sys_src", clock: "main"    }
-      { name: "sys_io_div4",    gen: true,  type: "top", parent: "sys_src", clock: "io_div4" }
       { name: "spi_device",     gen: true,  type: "top", parent: "lc_src", clock: "io_div4", sw: true }
       { name: "spi_host0",      gen: true,  type: "top", parent: "lc_src", clock: "io_div4", sw: true }
       { name: "i2c0",           gen: true,  type: "top", parent: "lc_src", clock: "io_div4", sw: true },
@@ -542,7 +541,6 @@
       clock_group: "powerup",
       reset_connections: {rst_ni: "lc_io_div4",
                           rst_aon_ni: "lc_aon",
-                          rst_sys_ni: "sys_io_div4"
                          },
       domain: ["Aon"],
       base_addr: {
@@ -1149,9 +1147,6 @@
     },
   ]
 
-  // All memories wrapped up in relevant controllers
-  memory: [],
-
   // The port data structure is not something that should be used liberally.
   // It is used specifically to assign special attributes to specific ports.
   // For example, this allows us to designate a port as part of inter-module
@@ -1300,7 +1295,8 @@
                                       'clkmgr_aon.lc_hw_debug_en',
                                       'pwrmgr_aon.lc_hw_debug_en',
                                       'soc_dbg_ctrl.lc_hw_debug_en'],
-      'lc_ctrl.lc_cpu_en'          : ['rv_core_ibex.lc_cpu_en'],
+      'lc_ctrl.lc_cpu_en'          : ['rv_core_ibex.lc_cpu_en',
+                                      'soc_dbg_ctrl.lc_cpu_en'],
       'lc_ctrl.lc_keymgr_en'       : ['keymgr_dpe.lc_keymgr_en'],
       'lc_ctrl.lc_escalate_en'     : ['aes.lc_escalate_en',
                                       'kmac.lc_escalate_en',
@@ -1321,6 +1317,8 @@
       'lc_ctrl.lc_creator_seed_sw_rw_en'   : ['otp_ctrl.lc_creator_seed_sw_rw_en'],
       'lc_ctrl.lc_owner_seed_sw_rw_en'     : ['otp_ctrl.lc_owner_seed_sw_rw_en'],
       'lc_ctrl.lc_seed_hw_rd_en'           : ['otp_ctrl.lc_seed_hw_rd_en'],
+      'lc_ctrl.lc_rma_state'               : ['otp_ctrl.lc_rma_state',
+                                              'soc_dbg_ctrl.lc_rma_state'],
 
       // OTP PRIM_OTP connections
       'otp_ctrl.otp_macro'         : ['otp_macro.otp'],

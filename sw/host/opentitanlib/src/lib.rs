@@ -2,9 +2,6 @@
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
-// Used for serde_annotate.
-#![feature(min_specialization)]
-
 pub mod app;
 pub mod backend;
 pub mod bootstrap;
@@ -17,7 +14,6 @@ pub mod image;
 pub mod io;
 pub mod otp;
 pub mod ownership;
-pub mod proxy;
 pub mod rescue;
 pub mod spiflash;
 pub mod test_utils;

@@ -49,13 +49,11 @@ ujson_rust(
     defines = ["opentitanlib=crate"],
 )
 
-filegroup(
-    name = "config",
-    srcs = glob(["src/app/config/*.json5"]),
-)
-
+# This is the catch-all "everything" crate.
+# Before adding things here, consider if it can be made a separate crate instead.
+# This should eventually be break down into multiple smaller crates.
 rust_library(
-    name = "opentitanlib",
+    name = "opentitanlib_base",
     srcs = [
         "src/app/command.rs",
         "src/app/config/mod.rs",
@@ -64,14 +62,7 @@ rust_library(
         "src/app/i2c.rs",
         "src/app/mod.rs",
         "src/app/spi.rs",
-        "src/backend/chip_whisperer.rs",
-        "src/backend/dediprog.rs",
-        "src/backend/ftdi.rs",
-        "src/backend/hyperdebug.rs",
         "src/backend/mod.rs",
-        "src/backend/proxy.rs",
-        "src/backend/ti50emulator.rs",
-        "src/backend/verilator.rs",
         "src/bootstrap/eeprom.rs",
         "src/bootstrap/legacy.rs",
         "src/bootstrap/legacy_rescue.rs",
@@ -131,12 +122,6 @@ rust_library(
         "src/ownership/mod.rs",
         "src/ownership/owner.rs",
         "src/ownership/rescue.rs",
-        "src/proxy/errors.rs",
-        "src/proxy/handler.rs",
-        "src/proxy/mod.rs",
-        "src/proxy/nonblocking_uart.rs",
-        "src/proxy/protocol.rs",
-        "src/proxy/socket_server.rs",
         "src/rescue/mod.rs",
         "src/rescue/serial.rs",
         "src/rescue/xmodem.rs",
@@ -174,49 +159,13 @@ rust_library(
         "src/tpm/driver.rs",
         "src/tpm/mod.rs",
         "src/tpm/status.rs",
-        "src/transport/chip_whisperer/board.rs",
-        "src/transport/chip_whisperer/gpio.rs",
-        "src/transport/chip_whisperer/mod.rs",
-        "src/transport/chip_whisperer/spi.rs",
-        "src/transport/chip_whisperer/usb.rs",
         "src/transport/common/fpga.rs",
         "src/transport/common/mod.rs",
         "src/transport/common/uart.rs",
-        "src/transport/dediprog/gpio.rs",
-        "src/transport/dediprog/mod.rs",
-        "src/transport/dediprog/spi.rs",
         "src/transport/errors.rs",
-        "src/transport/ftdi/chip.rs",
-        "src/transport/ftdi/gpio.rs",
-        "src/transport/ftdi/mod.rs",
-        "src/transport/ftdi/spi.rs",
-        "src/transport/hyperdebug/c2d2.rs",
-        "src/transport/hyperdebug/dfu.rs",
-        "src/transport/hyperdebug/gpio.rs",
-        "src/transport/hyperdebug/i2c.rs",
-        "src/transport/hyperdebug/mod.rs",
-        "src/transport/hyperdebug/servo_micro.rs",
-        "src/transport/hyperdebug/spi.rs",
-        "src/transport/hyperdebug/ti50.rs",
-        "src/transport/hyperdebug/uart.rs",
         "src/transport/ioexpander/mod.rs",
         "src/transport/ioexpander/sx1503.rs",
         "src/transport/mod.rs",
-        "src/transport/proxy/emu.rs",
-        "src/transport/proxy/gpio.rs",
-        "src/transport/proxy/i2c.rs",
-        "src/transport/proxy/mod.rs",
-        "src/transport/proxy/spi.rs",
-        "src/transport/proxy/uart.rs",
-        "src/transport/ti50emulator/emu.rs",
-        "src/transport/ti50emulator/gpio.rs",
-        "src/transport/ti50emulator/i2c.rs",
-        "src/transport/ti50emulator/mod.rs",
-        "src/transport/ti50emulator/uart.rs",
-        "src/transport/verilator/gpio.rs",
-        "src/transport/verilator/mod.rs",
-        "src/transport/verilator/subprocess.rs",
-        "src/transport/verilator/transport.rs",
         "src/uart/console.rs",
         "src/uart/mod.rs",
         "src/util/bigint.rs",
@@ -234,6 +183,7 @@ rust_library(
         "src/util/rom_detect.rs",
         "src/util/runtime.rs",
         "src/util/serde.rs",
+        "src/util/serializable_error.rs",
         "src/util/status.rs",
         "src/util/testing.rs",
         "src/util/unknown.rs",
@@ -254,7 +204,6 @@ rust_library(
         ],
     }),
     compile_data = [
-        ":config",
         ":gpio",
         ":i2c_target",
         ":mem",
@@ -262,18 +211,15 @@ rust_library(
         ":pinmux_config",
         ":spi_passthru",
         ":ottf",
-        "@hyperdebug_firmware//:hyperdebug/ec.bin",
-        "//third_party/openocd:jtag_cmsis_dap_adapter_cfg",
         "//util/openocd/target:lowrisc-earlgrey.cfg",
         "//util/openocd/target:lowrisc-earlgrey-lc.cfg",
         "//sw/host/opentitanlib/bindgen:rom_error_enum",
     ],
-    crate_features = [
-        "include_hyperdebug_firmware",
-    ] + select({
+    crate_features = select({
         "//sw/device:is_english_breakfast": ["english_breakfast"],
         "//conditions:default": [],
     }),
+    crate_name = "opentitanlib",
     proc_macro_deps = [
         "//sw/host/opentitanlib/opentitantool_derive",
     ],
@@ -286,10 +232,8 @@ rust_library(
         "rom_error_enum": "$(location //sw/host/opentitanlib/bindgen:rom_error_enum)",
         "spi_passthru": "$(location :spi_passthru)",
         "ottf": "$(location :ottf)",
-        "hyperdebug_firmware": "$(location @hyperdebug_firmware//:hyperdebug/ec.bin)",
         "openocd_riscv_target_cfg": "$(location //util/openocd/target:lowrisc-earlgrey.cfg)",
         "openocd_lc_target_cfg": "$(location //util/openocd/target:lowrisc-earlgrey-lc.cfg)",
-        "openocd_cmsis_dap_adapter_cfg": "$(location //third_party/openocd:jtag_cmsis_dap_adapter_cfg)",
     },
     deps = [
         "//hw/top_earlgrey/sw/autogen/chip:top_earlgrey",
@@ -305,12 +249,8 @@ rust_library(
         "@crate_index//:deser-hjson",
         "@crate_index//:directories",
         "@crate_index//:ecdsa",
-        "@crate_index//:embedded-hal",
         "@crate_index//:env_logger",
         "@crate_index//:erased-serde",
-        "@crate_index//:ftdi",
-        "@crate_index//:ftdi-embedded-hal",
-        "@crate_index//:ftdi-mpsse",
         "@crate_index//:hex",
         "@crate_index//:humantime",
         "@crate_index//:humantime-serde",
@@ -343,6 +283,30 @@ rust_library(
     ],
 )
 
+# To avoid having all existing `opentitanlib` to carry dependency of individual splitted crates,
+# re-export everything under the original `opentitanlib` name.
+rust_library(
+    name = "opentitanlib",
+    srcs = [
+        "reexport.rs",
+    ],
+    aliases = {
+        # The `:opentitanlib_base` has crate name of `opentitanlib`.
+        # Rename it before re-exporting to avoid conflicts.
+        ":opentitanlib_base": "opentitanlib_base",
+    },
+    deps = [
+        ":opentitanlib_base",
+        "//sw/host/ot_transports/chipwhisperer",
+        "//sw/host/ot_transports/dediprog",
+        "//sw/host/ot_transports/ftdi",
+        "//sw/host/ot_transports/hyperdebug",
+        "//sw/host/ot_transports/proxy",
+        "//sw/host/ot_transports/ti50emulator",
+        "//sw/host/ot_transports/verilator",
+    ],
+)
+
 rust_test(
     name = "opentitanlib_test",
     compile_data = [
@@ -352,7 +316,7 @@ rust_test(
         "src/bootstrap/simple.bin",
         "src/spiflash/SFDP_MX66L1G.bin",
     ],
-    crate = ":opentitanlib",
+    crate = ":opentitanlib_base",
     data = glob(["testdata/**"]) + [
         ":e2e_command",
         ":gpio",
@@ -371,7 +335,7 @@ rust_test(
 
 rust_doc(
     name = "opentitanlib_doc",
-    crate = ":opentitanlib",
+    crate = ":opentitanlib_base",
 )
 
 filegroup(
