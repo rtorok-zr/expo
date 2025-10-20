@@ -8,6 +8,7 @@
 
 #include "sw/device/lib/crypto/drivers/keymgr.h"
 
+#include "hw/top/dt/dt_keymgr.h"
 #include "sw/device/lib/base/abs_mmio.h"
 #include "sw/device/lib/base/bitfield.h"
 #include "sw/device/lib/base/hardened_memory.h"
@@ -17,18 +18,22 @@
 #include "sw/device/lib/runtime/hart.h"
 
 #include "hw/top/keymgr_regs.h"
-#include "hw/top_earlgrey/sw/autogen/top_earlgrey.h"
 
 // Module ID for status codes.
 #define MODULE_ID MAKE_MODULE_ID('d', 'k', 'r')
 
 enum {
-  kBaseAddr = TOP_EARLGREY_KEYMGR_BASE_ADDR,
-
   // Microseconds to leave the sideload-clear bit set. This value is probably
   // overkill, since theoretically one cycle is enough if entropy is available.
   kSideloadClearWaitMicros = 100,
 };
+
+static const dt_keymgr_t kKeymgrDt = kDtKeymgr;
+
+static inline uint32_t keymgr_base(void) {
+  return dt_keymgr_primary_reg_block(kKeymgrDt);
+}
+
 static_assert(kKeymgrSaltNumWords == KEYMGR_SALT_MULTIREG_COUNT,
               "Number of salt registers does not match.");
 static_assert(kKeymgrOutputShareNumWords ==
@@ -45,7 +50,7 @@ static_assert(kKeymgrOutputShareNumWords ==
  */
 OT_WARN_UNUSED_RESULT
 static status_t keymgr_is_idle(void) {
-  uint32_t reg = abs_mmio_read32(kBaseAddr + KEYMGR_OP_STATUS_REG_OFFSET);
+  uint32_t reg = abs_mmio_read32(keymgr_base() + KEYMGR_OP_STATUS_REG_OFFSET);
   uint32_t status = bitfield_field32_read(reg, KEYMGR_OP_STATUS_STATUS_FIELD);
   if (launder32(status) == KEYMGR_OP_STATUS_STATUS_VALUE_IDLE) {
     HARDENED_CHECK_EQ(status, KEYMGR_OP_STATUS_STATUS_VALUE_IDLE);
@@ -62,16 +67,16 @@ static status_t keymgr_is_idle(void) {
  * @param diversification Diversification input for the key derivation.
  */
 static void keymgr_start(keymgr_diversification_t diversification) {
+  const uint32_t kBase = keymgr_base();
   // Set the version.
-  abs_mmio_write32(kBaseAddr + KEYMGR_KEY_VERSION_REG_OFFSET,
+  abs_mmio_write32(kBase + KEYMGR_KEY_VERSION_REG_OFFSET,
                    diversification.version);
   // Set the salt.
-  hardened_mmio_write(kBaseAddr + KEYMGR_SALT_0_REG_OFFSET,
-                      diversification.salt, kKeymgrSaltNumWords);
+  hardened_mmio_write(kBase + KEYMGR_SALT_0_REG_OFFSET, diversification.salt,
+                      kKeymgrSaltNumWords);
 
   // Issue the start command.
-  abs_mmio_write32(kBaseAddr + KEYMGR_START_REG_OFFSET,
-                   1 << KEYMGR_START_EN_BIT);
+  abs_mmio_write32(kBase + KEYMGR_START_REG_OFFSET, 1 << KEYMGR_START_EN_BIT);
 }
 
 /**
@@ -90,16 +95,16 @@ static status_t keymgr_wait_until_done(void) {
   uint32_t reg;
   uint32_t status;
   do {
-    reg = abs_mmio_read32(kBaseAddr + KEYMGR_OP_STATUS_REG_OFFSET);
+    reg = abs_mmio_read32(keymgr_base() + KEYMGR_OP_STATUS_REG_OFFSET);
     status = bitfield_field32_read(reg, KEYMGR_OP_STATUS_STATUS_FIELD);
   } while (status == KEYMGR_OP_STATUS_STATUS_VALUE_WIP);
 
   // Clear OP_STATUS by writing back the value we read.
-  abs_mmio_write32(kBaseAddr + KEYMGR_OP_STATUS_REG_OFFSET, reg);
+  abs_mmio_write32(keymgr_base() + KEYMGR_OP_STATUS_REG_OFFSET, reg);
 
   // Check that the value was cleared (doubles as a read-back check).
-  HARDENED_CHECK_EQ(abs_mmio_read32(kBaseAddr + KEYMGR_OP_STATUS_REG_OFFSET),
-                    0);
+  HARDENED_CHECK_EQ(
+      abs_mmio_read32(keymgr_base() + KEYMGR_OP_STATUS_REG_OFFSET), 0);
 
   // Check if the key manager reported errors. If it is already idle or
   // completed an operation successfully, return an OK status. No other
@@ -114,8 +119,8 @@ static status_t keymgr_wait_until_done(void) {
     case KEYMGR_OP_STATUS_STATUS_VALUE_DONE_ERROR: {
       // Clear the ERR_CODE register before returning.
       uint32_t err_code =
-          abs_mmio_read32(kBaseAddr + KEYMGR_ERR_CODE_REG_OFFSET);
-      abs_mmio_write32(kBaseAddr + KEYMGR_ERR_CODE_REG_OFFSET, err_code);
+          abs_mmio_read32(keymgr_base() + KEYMGR_ERR_CODE_REG_OFFSET);
+      abs_mmio_write32(keymgr_base() + KEYMGR_ERR_CODE_REG_OFFSET, err_code);
       return OTCRYPTO_RECOV_ERR;
     }
   }
@@ -144,8 +149,8 @@ static status_t keymgr_wait_until_done(void) {
     ctrl = bitfield_field32_write(                                             \
         ctrl, KEYMGR_CONTROL_SHADOWED_OPERATION_FIELD,                         \
         KEYMGR_CONTROL_SHADOWED_OPERATION_VALUE_##operation##_OUTPUT);         \
-    abs_mmio_write32_shadowed(kBaseAddr + KEYMGR_CONTROL_SHADOWED_REG_OFFSET,  \
-                              ctrl);                                           \
+    abs_mmio_write32_shadowed(                                                 \
+        keymgr_base() + KEYMGR_CONTROL_SHADOWED_REG_OFFSET, ctrl);             \
   } while (false);
 
 status_t keymgr_generate_key_sw(keymgr_diversification_t diversification,
@@ -167,10 +172,10 @@ status_t keymgr_generate_key_sw(keymgr_diversification_t diversification,
 
   // Collect output.
   hardened_mmio_read(key->share0,
-                     kBaseAddr + KEYMGR_SW_SHARE0_OUTPUT_0_REG_OFFSET,
+                     keymgr_base() + KEYMGR_SW_SHARE0_OUTPUT_0_REG_OFFSET,
                      kKeymgrOutputShareNumWords);
   hardened_mmio_read(key->share1,
-                     kBaseAddr + KEYMGR_SW_SHARE1_OUTPUT_0_REG_OFFSET,
+                     keymgr_base() + KEYMGR_SW_SHARE1_OUTPUT_0_REG_OFFSET,
                      kKeymgrOutputShareNumWords);
 
   return OTCRYPTO_OK;
@@ -232,12 +237,12 @@ static status_t keymgr_sideload_clear(uint32_t slot) {
 
   // Set SIDELOAD_CLEAR to begin continuously clearing the requested slot.
   abs_mmio_write32(
-      kBaseAddr + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET,
+      keymgr_base() + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET,
       bitfield_field32_write(0, KEYMGR_SIDELOAD_CLEAR_VAL_FIELD, slot));
 
   // Read back the value (FI hardening measure).
   uint32_t sideload_clear =
-      abs_mmio_read32(kBaseAddr + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET);
+      abs_mmio_read32(keymgr_base() + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET);
   HARDENED_CHECK_EQ(
       bitfield_field32_read(sideload_clear, KEYMGR_SIDELOAD_CLEAR_VAL_FIELD),
       slot);
@@ -247,7 +252,7 @@ static status_t keymgr_sideload_clear(uint32_t slot) {
 
   // Stop continuous clearing.
   abs_mmio_write32(
-      kBaseAddr + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET,
+      keymgr_base() + KEYMGR_SIDELOAD_CLEAR_REG_OFFSET,
       bitfield_field32_write(0, KEYMGR_SIDELOAD_CLEAR_VAL_FIELD,
                              KEYMGR_SIDELOAD_CLEAR_VAL_VALUE_NONE));
 
