@@ -92,6 +92,7 @@ ECDH_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "ecdh_kat",
+    slow_test = True,
     test_args = ECDH_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/ecdh_kat:harness",
     test_vectors = ECDH_TESTVECTOR_TARGETS,
@@ -183,6 +184,7 @@ SHA3_224_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "sha3_224_kat",
+    slow_test = True,
     test_args = SHA3_224_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/hash_kat:harness",
     test_vectors = SHA3_224_TESTVECTOR_TARGETS,
@@ -316,6 +318,7 @@ CSHAKE_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "cshake_kat",
+    slow_test = True,
     test_args = CSHAKE_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/hash_kat:harness",
     test_vectors = CSHAKE_TESTVECTOR_TARGETS,
@@ -342,6 +345,10 @@ cryptotest(
 HMAC_SHA256_TESTVECTOR_TARGETS = [
     "//sw/host/cryptotest/testvectors/data:wycheproof_hmac_sha256.json",
     "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_sha256_fips_198_1_json",
+] + [
+    "//sw/host/cryptotest/testvectors/data:random_hmac_64_sha256",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_512_sha256",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_520_sha256",
 ]
 
 HMAC_SHA256_TESTVECTOR_ARGS = " ".join([
@@ -360,6 +367,10 @@ cryptotest(
 HMAC_SHA384_TESTVECTOR_TARGETS = [
     "//sw/host/cryptotest/testvectors/data:wycheproof_hmac_sha384.json",
     "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_sha384_fips_198_1_json",
+] + [
+    "//sw/host/cryptotest/testvectors/data:random_hmac_64_sha384",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_1024_sha384",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_1032_sha384",
 ]
 
 HMAC_SHA384_TESTVECTOR_ARGS = " ".join([
@@ -378,6 +389,10 @@ cryptotest(
 HMAC_SHA512_TESTVECTOR_TARGETS = [
     "//sw/host/cryptotest/testvectors/data:wycheproof_hmac_sha512.json",
     "//sw/host/cryptotest/testvectors/data:nist_cavp_hmac_sha512_fips_198_1_json",
+] + [
+    "//sw/host/cryptotest/testvectors/data:random_hmac_64_sha512",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_1024_sha512",
+    "//sw/host/cryptotest/testvectors/data:random_hmac_1032_sha512",
 ]
 
 HMAC_SHA512_TESTVECTOR_ARGS = " ".join([
@@ -408,6 +423,7 @@ KMAC_TESTVECTOR_ARGS = " ".join([
 
 cryptotest(
     name = "kmac_kat",
+    slow_test = True,
     test_args = KMAC_TESTVECTOR_ARGS,
     test_harness = "//sw/host/tests/crypto/kmac_kat:harness",
     test_vectors = KMAC_TESTVECTOR_TARGETS,
