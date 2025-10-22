@@ -9,6 +9,12 @@
 <%
 from topgen.lib import Name
 
+non_zeroizable_parts = [part for part in otp_mmap["partitions"] if
+                             part["zeroizable"] == 0]
+
+zeroizable_parts = [part for part in otp_mmap["partitions"] if
+                             part["zeroizable"]]
+
 parts_without_lc = [part for part in otp_mmap["partitions"] if
                     part["variant"] in ["Buffered", "Unbuffered"]]
 
@@ -17,6 +23,9 @@ unbuffered_parts = [part for part in otp_mmap["partitions"] if
 
 unbuffered_parts_with_digest = [part for part in unbuffered_parts if
                                 (part["sw_digest"] or part["hw_digest"])]
+zr_unbuffered_parts_without_digest = [part for part in unbuffered_parts if
+                                (part["zeroizable"] == 0 and part["sw_digest"]==0
+                                and part["hw_digest"]==0)]
 
 buffered_parts = [part for part in otp_mmap["partitions"] if
                   part["variant"] == "Buffered"]
@@ -28,6 +37,9 @@ buffered_nonsecret_parts_with_digest = [part for part in buffered_parts if
 buffered_secret_parts_with_digest = [part for part in buffered_parts if
                                      (part["sw_digest"] or part["hw_digest"]) and
                                      part["secret"]]
+
+zr_secret_parts_with_digest = [part for part in buffered_parts if
+                                     part["hw_digest"] and part["secret"]]
 ## Partitions + LCI + DAI
 num_err_code = len(otp_mmap["partitions"]) + 2
 %>\
@@ -157,6 +169,8 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
   otp_ctrl_csr_rd_after_alert_cg_wrap csr_rd_after_alert_cg_wrap;
   otp_ctrl_unbuf_access_lock_cg_wrap  unbuf_access_lock_cg_wrap[NumPartUnbuf];
 
+
+
   bit_toggle_cg_wrap lc_prog_cg;
   bit_toggle_cg_wrap otbn_req_cg;
   bit_toggle_cg_wrap status_csr_cg[OtpStatusFieldSize];
@@ -274,6 +288,112 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
     dai_access_secret2: cross lc_creator_seed_sw_rw_en, dai_access_cmd;
   endgroup
 
+
+  covergroup zr_dai_cmd_cg with function sample(
+        otp_ctrl_part_pkg::part_idx_e part_idx, bit zeroizable, otp_part_addr_cov_e offset_addr);
+    coverpoint part_idx
+    {
+      ignore_bins _ignore_bins = {otp_ctrl_part_pkg::LifeCycleIdx,
+                                  otp_ctrl_part_pkg::DaiIdx,
+                                  otp_ctrl_part_pkg::LciIdx,
+                                  otp_ctrl_part_pkg::KdiIdx,
+                                  otp_ctrl_part_pkg::NumAgentsIdx};
+    }
+    coverpoint zeroizable;
+    coverpoint offset_addr;
+
+    zeroized_partition: cross part_idx, zeroizable, offset_addr
+    {
+      ignore_bins part_not_zeroizable =
+           binsof (zeroizable) intersect {1}
+        && binsof (part_idx) intersect {
+% for part in non_zeroizable_parts:
+          ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+        };
+
+      ignore_bins part_not_zeroizable_no_digest_addr =
+           binsof (zeroizable) intersect {0}
+        && binsof (part_idx) intersect {
+% for part in zr_unbuffered_parts_without_digest:
+          ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+        }
+        && binsof (offset_addr) intersect {OtpPartDigestAddr};
+
+      ignore_bins part_not_zeroizable_no_zero_addr =
+           binsof (zeroizable) intersect {0}
+        && binsof (part_idx) intersect {
+% for part in non_zeroizable_parts:
+          ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+        }
+        && binsof (offset_addr) intersect {OtpPartZeroAddr};
+
+      ignore_bins part_zeroizable =
+           binsof (zeroizable) intersect {0}
+        && binsof (part_idx) intersect {
+% for part in zeroizable_parts:
+          ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+        };
+    }
+  endgroup
+
+  covergroup zr_partition_read_cg with function sample(
+        otp_ctrl_part_pkg::part_idx_e part_idx, bit is_secret, bit has_digest,
+        bit digest_set, bit access_error);
+    coverpoint part_idx
+    {
+      ignore_bins part_not_zeroizable = {
+% for part in non_zeroizable_parts:
+          ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+      };
+      ignore_bins ignored_partitions = {otp_ctrl_part_pkg::LifeCycleIdx,
+                                        otp_ctrl_part_pkg::DaiIdx,
+                                        otp_ctrl_part_pkg::LciIdx,
+                                        otp_ctrl_part_pkg::KdiIdx,
+                                        otp_ctrl_part_pkg::NumAgentsIdx};
+    }
+
+    coverpoint is_secret;
+    coverpoint has_digest;
+    coverpoint digest_set;
+    coverpoint access_error;
+
+    all: cross part_idx, is_secret, has_digest, digest_set, access_error
+    {
+      illegal_bins is_secret_part =
+                              binsof (part_idx ) intersect {
+% for part in zr_secret_parts_with_digest:
+                                ${Name.to_camel_case(part["name"])}Idx${"" if loop.last else ","}
+% endfor
+                              }
+                           && binsof (is_secret) intersect {0};
+
+      illegal_bins is_secret_no_digest =
+                              binsof (is_secret ) intersect {1}
+                           && binsof (has_digest) intersect {0};
+
+      illegal_bins no_digest =
+                              binsof (has_digest) intersect {0}
+                           && binsof (digest_set) intersect {1};
+
+      illegal_bins digest_not_set_access_error_seen =
+                              binsof (digest_set  ) intersect {0}
+                           && binsof (access_error) intersect {1};
+
+      illegal_bins not_secret_has_digest_set_access_error =
+                              binsof (is_secret   ) intersect {0}
+                           && binsof (has_digest  ) intersect {1}
+                           && binsof (digest_set  ) intersect {1}
+                           && binsof (access_error) intersect {1};
+    }
+  endgroup
+
+
+
   function new(string name, uvm_component parent);
     super.new(name, parent);
     // Create coverage from local covergroups.
@@ -288,6 +408,9 @@ class otp_ctrl_env_cov extends cip_base_env_cov #(.CFG_T(otp_ctrl_env_cfg));
     dai_err_code_cg               = new();
     lci_err_code_cg               = new();
     dai_access_secret2_cg         = new();
+
+    zr_dai_cmd_cg        = new();
+    zr_partition_read_cg = new();
   endfunction : new
 
   virtual function void build_phase(uvm_phase phase);

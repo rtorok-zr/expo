@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 {
@@ -166,6 +167,18 @@
     {
       name: "{name}_stress_all_with_rand_reset"
       reseed: 100
+    }
+
+    {
+      name: otp_ctrl_zeroization
+      uvm_test_seq: otp_ctrl_zeroization_vseq
+      reseed: 250
+    }
+
+    {
+      name: otp_ctrl_zeroization_with_checks
+      uvm_test_seq: otp_ctrl_zeroization_with_checks_vseq
+      reseed: 250
     }
   ]
 
