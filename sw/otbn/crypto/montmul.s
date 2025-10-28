@@ -487,7 +487,7 @@ mont_loop:
     /* Step 1: First multiplication takes a limb of each of the operands and
        computes the product. The carry word from the previous cycle c_xy and
        the j_th limb of the buffer A, A[j] are added to the multiplication
-       result.
+       result. */
 
     /* load limb of y (operand a) and mult. with x_i: [w26, w27] <= y[j]*x_i */
     bn.lid    x12, 0(x19++)
@@ -574,6 +574,10 @@ mont_loop:
  * clobbered Flag Groups: FG0, FG1
  */
 montmul:
+  /* set pointers */
+  li        x10, 4
+  li        x11, 2
+
   /* load Montgomery constant: w3 = dmem[x17] = dmem[dptr_m0d] = m0' */
   bn.lid    x9, 0(x17)
 
@@ -632,8 +636,7 @@ modload:
   bn.lid   x8, 0(x16)
 
   /* x31 <= N - 1 */
-  li       x2, 1
-  sub      x31, x30, x2
+  addi     x31, x30, -1
 
   /* Compute Montgomery constant */
   jal      x1, m0inv

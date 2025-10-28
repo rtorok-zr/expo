@@ -96,6 +96,13 @@ class ConstantContext:
                 grd_name = get_op_val_str(insn, op_vals, 'grd')
                 # Operand is a constant; add/update grd
                 new_values[grd_name] = self.values[grs1_name] + op_vals['imm']
+        elif insn.mnemonic == 'slli':
+            grs1_name = get_op_val_str(insn, op_vals, 'grs1')
+            if grs1_name in self.values:
+                grd_name = get_op_val_str(insn, op_vals, 'grd')
+                # Operand is a constant; add/update grd
+                new_values[
+                    grd_name] = self.values[grs1_name] << op_vals['shamt']
         elif insn.mnemonic == 'lui':
             grd_name = get_op_val_str(insn, op_vals, 'grd')
             new_values[grd_name] = op_vals['imm'] << 12
