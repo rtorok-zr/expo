@@ -15,10 +15,10 @@ permissions:
   id-token: write
 
 jobs:
-  # On-demand tests
+  # Run On-demand Tests
   on-demand:
     name: Run On-demand Tests
-    uses: ./.github/workflows/zr-ci.yml
+    uses: ./.github/workflows/ci.yml
     secrets: inherit
 
   # Build FPGA bitstreams.
@@ -60,8 +60,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare environment
         uses: ./.github/actions/prepare-env
-        with:
-          service_account_json: '${{ secrets.BAZEL_CACHE_CREDS }}'
       - name: Download partial build-bin
         uses: ./.github/actions/download-partial-build-bin
         with:
@@ -83,34 +81,38 @@ jobs:
           gcloud storage cp latest.txt $BUCKET_URI/latest.txt
           gcloud storage cp $BUCKET_URI/bitstream-${{ github.sha }}.tar.gz $BUCKET_URI/bitstream-latest.tar.gz
 
-   # Hyper310 on-demand FPGA jobs
-   execute_ondemand_tests_hyper310:
-     name: Hyper310 On-Demand Tests
-     needs: chip_earlgrey_cw310_hyperdebug
-     uses: ./.github/workflows/hyper310-pr.yml
-     secrets: inherit
+  # Hyper310 on-demand FPGA jobs
+  execute_ondemand_tests_hyper310:
+    name: Hyper310 On-Demand Tests
+    needs: chip_earlgrey_cw310_hyperdebug
+    uses: ./.github/workflows/hyper310-pr.yml
+    secrets: inherit
+    with:
+      bitstream: chip_earlgrey_cw310_hyperdebug
 
-   # CW340 on-demand FPGA jobs
-   execute_ondemand_tests_cw340:
-     name: CW340 On-Demand Tests
-     needs: chip_earlgrey_cw340
-     uses: ./.github/workflows/cw340-pr.yml
-     secrets: inherit
+  # CW340 on-demand FPGA jobs
+  execute_ondemand_tests_cw340:
+    name: CW340 On-Demand Tests
+    needs: chip_earlgrey_cw340
+    uses: ./.github/workflows/cw340-pr.yml
+    secrets: inherit
+    with:
+      bitstream: chip_earlgrey_cw340
 
-   # Hyper310 nightly FPGA jobs
-   execute_nightly_tests_hyper310:
-     name: Hyper310 Nightly Tests
-     needs: chip_earlgrey_cw310_hyperdebug
-     uses: ./.github/workflows/hyper310-nightly.yml
-     secrets: inherit
-     with:
-       bitstream: chip_earlgrey_cw310_hyperdebug
+  # Hyper310 nightly FPGA jobs
+  execute_nightly_tests_hyper310:
+    name: Hyper310 Nightly Tests
+    needs: chip_earlgrey_cw310_hyperdebug
+    uses: ./.github/workflows/hyper310-nightly.yml
+    secrets: inherit
+    with:
+      bitstream: chip_earlgrey_cw310_hyperdebug
 
-   # CW340 nightly FPGA jobs
-   execute_nightly_tests_cw340:
-     name: CW340 Nightly Tests
-     needs: chip_earlgrey_cw340
-     uses: ./.github/workflows/cw340-nightly.yml
-     secrets: inherit
-     with:
-       bitstream: chip_earlgrey_cw340
+  # CW340 nightly FPGA jobs
+  execute_nightly_tests_cw340:
+    name: CW340 Nightly Tests
+    needs: chip_earlgrey_cw340
+    uses: ./.github/workflows/cw340-nightly.yml
+    secrets: inherit
+    with:
+      bitstream: chip_earlgrey_cw340
