@@ -5,9 +5,6 @@ name: Prepare environment
 description: Install dependencies and prepare environment needed for OpenTitan
 
 inputs:
-  service_account_json:
-    description: Service account JSON for Google Cloud access
-    default: ''
   verilator-version:
     description: Verilator version to install
     required: true
@@ -157,7 +154,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
 
     - uses: google-github-actions/setup-gcloud@v2
-      if: github.event_name != 'pull_request' && inputs.service_account_json != ''
+      if: github.event_name != 'pull_request'
 
     - name: Configure ~/.bazelrc
       if: inputs.configure-bazel == 'true'
@@ -167,7 +164,7 @@ runs:
         # See #14695 for more information.
         echo "build --remote_default_exec_properties=OSVersion=\"$(lsb_release -ds)\"" >> ~/.bazelrc
 
-        if ${{ github.event_name != 'pull_request' && inputs.service_account_json != '' }}; then
+        if ${{ github.event_name != 'pull_request' }}; then
           echo "Will upload to the cache." >&2
         else
           echo "Download from cache only." >&2

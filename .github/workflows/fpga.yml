@@ -66,8 +66,6 @@ jobs:
           fetch-depth: 0
       - name: Prepare environment
         uses: ./.github/actions/prepare-env
-        with:
-          service_account_json: '${{ secrets.BAZEL_CACHE_CREDS }}'
           fpga: ${{ inputs.board }}
       - name: Download bitstream
         uses: ./.github/actions/download-partial-build-bin
