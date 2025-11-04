@@ -95,6 +95,7 @@ jobs:
           fetch-depth: 0 # Bitstream cache requires all commits.
       - name: Prepare environment
         uses: ./.github/actions/prepare-env
+        with:
           install-verible: true
       - name: Countermeasures implemented (earlgrey)
         run: ./ci/scripts/check-countermeasures.sh earlgrey
@@ -470,6 +471,7 @@ jobs:
           path: opentitan
       - name: Prepare environment
         uses: ./opentitan/.github/actions/prepare-env
+        with:
           working-directory: opentitan
       - uses: actions/checkout@v4
         with:

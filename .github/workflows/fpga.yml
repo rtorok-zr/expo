@@ -66,6 +66,7 @@ jobs:
           fetch-depth: 0
       - name: Prepare environment
         uses: ./.github/actions/prepare-env
+        with:
           fpga: ${{ inputs.board }}
       - name: Download bitstream
         uses: ./.github/actions/download-partial-build-bin
