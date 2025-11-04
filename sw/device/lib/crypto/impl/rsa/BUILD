@@ -1,3 +1,7 @@
+# Copyright zeroRISC Inc.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -51,6 +55,7 @@ cc_library(
     target_compatible_with = [OPENTITAN_CPU],
     deps = [
         ":rsa_datatypes",
+        ":rsa_modexp_insn_counts",
         "//sw/device/lib/crypto/drivers:otbn",
         "//sw/otbn/crypto:run_rsa_modexp",
     ],
@@ -94,8 +99,8 @@ cc_library(
 
 autogen_otbn_insn_count_header(
     name = "rsa_modexp_insn_counts",
-    hjson = "rsa_modexp_modes.hjson",
     template = "rsa_modexp_insn_counts.h.tpl",
+    hjson = "rsa_modexp_modes.hjson",
     deps = [
         "//sw/otbn/crypto:run_rsa_modexp",
     ],

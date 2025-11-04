@@ -9,6 +9,7 @@
 #include "sw/device/lib/crypto/impl/rsa/rsa_modexp.h"
 
 #include "sw/device/lib/crypto/drivers/otbn.h"
+#include "sw/device/lib/crypto/impl/rsa/rsa_modexp_insn_counts.h"
 
 // Module ID for status codes.
 #define MODULE_ID MAKE_MODULE_ID('r', 'm', 'e')
@@ -95,7 +96,10 @@ status_t rsa_modexp_wait(size_t *num_words) {
  * @param[out] result Result of the modexp operation.
  * @return Status of the operation (OK or error).
  */
-static status_t rsa_modexp_finalize(const size_t num_words, uint32_t *result) {
+static status_t rsa_modexp_finalize(const size_t num_words,
+                                    const uint32_t min_insn_count,
+                                    const uint32_t max_insn_count,
+                                    uint32_t *result) {
   // Wait for OTBN to complete and get the result size.
   size_t num_words_inferred;
   OTBN_WIPE_IF_ERROR(rsa_modexp_wait(&num_words_inferred));
@@ -105,6 +109,9 @@ static status_t rsa_modexp_finalize(const size_t num_words, uint32_t *result) {
     otbn_dmem_sec_wipe_nofail();
     return OTCRYPTO_FATAL_ERR;
   }
+
+  // Check instruction count.
+  OTBN_CHECK_INSN_COUNT(min_insn_count, max_insn_count);
 
   // Read the result.
   OTBN_WIPE_IF_ERROR(otbn_dmem_read(num_words, kOtbnVarRsaInOut, result));
@@ -134,6 +141,12 @@ status_t rsa_modexp_consttime_2048_start(const rsa_2048_int_t *base,
   return OTCRYPTO_OK;
 }
 
+status_t rsa_modexp_consttime_2048_finalize(rsa_2048_int_t *result) {
+  return rsa_modexp_finalize(kRsa2048NumWords,
+                             kRsa2048ModexpMinInstructionCount,
+                             kRsa2048ModexpMaxInstructionCount, result->data);
+}
+
 status_t rsa_modexp_vartime_2048_start(const rsa_2048_int_t *base,
                                        const uint32_t exp,
                                        const rsa_2048_int_t *modulus) {
@@ -161,8 +174,10 @@ status_t rsa_modexp_vartime_2048_start(const rsa_2048_int_t *base,
   return otbn_execute();
 }
 
-status_t rsa_modexp_2048_finalize(rsa_2048_int_t *result) {
-  return rsa_modexp_finalize(kRsa2048NumWords, result->data);
+status_t rsa_modexp_vartime_2048_finalize(rsa_2048_int_t *result) {
+  return rsa_modexp_finalize(kRsa2048NumWords,
+                             kRsa2048ModexpF4MinInstructionCount,
+                             kRsa2048ModexpF4MaxInstructionCount, result->data);
 }
 
 status_t rsa_modexp_consttime_3072_start(const rsa_3072_int_t *base,
@@ -184,6 +199,12 @@ status_t rsa_modexp_consttime_3072_start(const rsa_3072_int_t *base,
   // Start OTBN.
   OTBN_WIPE_IF_ERROR(otbn_execute());
   return OTCRYPTO_OK;
+}
+
+status_t rsa_modexp_consttime_3072_finalize(rsa_3072_int_t *result) {
+  return rsa_modexp_finalize(kRsa3072NumWords,
+                             kRsa3072ModexpMinInstructionCount,
+                             kRsa3072ModexpMaxInstructionCount, result->data);
 }
 
 status_t rsa_modexp_vartime_3072_start(const rsa_3072_int_t *base,
@@ -213,8 +234,10 @@ status_t rsa_modexp_vartime_3072_start(const rsa_3072_int_t *base,
   return otbn_execute();
 }
 
-status_t rsa_modexp_3072_finalize(rsa_3072_int_t *result) {
-  return rsa_modexp_finalize(kRsa3072NumWords, result->data);
+status_t rsa_modexp_vartime_3072_finalize(rsa_3072_int_t *result) {
+  return rsa_modexp_finalize(kRsa3072NumWords,
+                             kRsa3072ModexpF4MinInstructionCount,
+                             kRsa3072ModexpF4MaxInstructionCount, result->data);
 }
 
 status_t rsa_modexp_consttime_4096_start(const rsa_4096_int_t *base,
@@ -236,6 +259,12 @@ status_t rsa_modexp_consttime_4096_start(const rsa_4096_int_t *base,
   // Start OTBN.
   OTBN_WIPE_IF_ERROR(otbn_execute());
   return OTCRYPTO_OK;
+}
+
+status_t rsa_modexp_consttime_4096_finalize(rsa_4096_int_t *result) {
+  return rsa_modexp_finalize(kRsa4096NumWords,
+                             kRsa4096ModexpMinInstructionCount,
+                             kRsa4096ModexpMaxInstructionCount, result->data);
 }
 
 status_t rsa_modexp_vartime_4096_start(const rsa_4096_int_t *base,
@@ -265,6 +294,8 @@ status_t rsa_modexp_vartime_4096_start(const rsa_4096_int_t *base,
   return otbn_execute();
 }
 
-status_t rsa_modexp_4096_finalize(rsa_4096_int_t *result) {
-  return rsa_modexp_finalize(kRsa4096NumWords, result->data);
+status_t rsa_modexp_vartime_4096_finalize(rsa_4096_int_t *result) {
+  return rsa_modexp_finalize(kRsa4096NumWords,
+                             kRsa4096ModexpF4MinInstructionCount,
+                             kRsa4096ModexpF4MaxInstructionCount, result->data);
 }
