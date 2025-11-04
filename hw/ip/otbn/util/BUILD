@@ -60,6 +60,16 @@ py_binary(
 )
 
 py_binary(
+    name = "gen_instruction_count_header",
+    srcs = ["gen_instruction_count_header.py"],
+    deps = [
+        "//hw/ip/otbn/util/shared:decode",
+        "//hw/ip/otbn/util/shared:instruction_count_range",
+        requirement("mako"),
+    ],
+)
+
+py_binary(
     name = "otbn_sim_test",
     srcs = ["otbn_sim_test.py"],
     deps = [
