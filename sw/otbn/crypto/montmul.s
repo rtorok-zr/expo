@@ -1,4 +1,5 @@
-/* Copyright lowRISC Contributors.
+/* Copyright zeroRISC Inc.
+ * Copyright lowRISC Contributors.
  * Copyright 2016 The Chromium OS Authors. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE.dcrypto file.
@@ -487,7 +488,7 @@ mont_loop:
     /* Step 1: First multiplication takes a limb of each of the operands and
        computes the product. The carry word from the previous cycle c_xy and
        the j_th limb of the buffer A, A[j] are added to the multiplication
-       result.
+       result. */
 
     /* load limb of y (operand a) and mult. with x_i: [w26, w27] <= y[j]*x_i */
     bn.lid    x12, 0(x19++)

@@ -88,6 +88,13 @@ otbn_library(
 )
 
 otbn_library(
+    name = "modinv",
+    srcs = [
+        "modinv.s",
+    ],
+)
+
+otbn_library(
     name = "montmul",
     srcs = [
         "montmul.s",
@@ -262,8 +269,10 @@ otbn_binary(
         "rsa.s",
     ],
     deps = [
+        ":div",
         ":modexp",
         ":montmul",
+        ":mul",
     ],
 )
 
@@ -273,8 +282,10 @@ otbn_binary(
         "run_rsa_modexp.s",
     ],
     deps = [
+        ":div",
         ":modexp",
         ":montmul",
+        ":mul",
     ],
 )
 
@@ -294,6 +305,7 @@ otbn_binary(
         ":div",
         ":gcd",
         ":lcm",
+        ":modinv",
         ":montmul",
         ":mul",
         ":primality",

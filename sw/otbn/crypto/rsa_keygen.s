@@ -1,4 +1,5 @@
 /* Copyright lowRISC contributors (OpenTitan project). */
+/* Copyright zeroRISC Inc. */
 /* Licensed under the Apache License, Version 2.0, see LICENSE for details. */
 /* SPDX-License-Identifier: Apache-2.0 */
 
@@ -16,9 +17,10 @@
 /**
  * Generate a random RSA key pair.
  *
- * The public key is the pair (n, e), where n is the modulus and e is the
- * public exponent. and the private key is the pair (n, d), where n is the same
- * modulus as in the public key and d is the private exponent.
+ * The public key is the pair (n, e), where n is the modulus and e is the public
+ * exponent. and the private key is the tuple (p, q, d_p, d_q, i_q), where p and
+ * q are the cofactors of n, d_p and d_q are the CRT components of the private
+ * exponent d, and i_q is the inverse of q mod p.
  *
  * For the official specification, see FIPS 186-5 section A.1.3. For the
  * purposes of this implementation, the RSA public exponent e is always 65537
@@ -37,7 +39,14 @@
  * @param[in]  x30: plen, number of 256-bit limbs for p and q
  * @param[in]  w31: all-zero
  * @param[out] dmem[rsa_n..rsa_n+(plen*2*32)] RSA public key modulus (n)
- * @param[out] dmem[rsa_d..rsa_d+(plen*2*32)] RSA private exponent (d)
+ * @param[out] dmem[rsa_p..rsa_p+(plen*32)] first RSA private key prime (p)
+ * @param[out] dmem[rsa_q..rsa_q+(plen*32)] second RSA private key prime (q)
+ * @param[out] dmem[rsa_d_p..rsa_d_p+(plen*32)] first RSA private key private
+       exponent CRT component (d_p)
+ * @param[out] dmem[rsa_d_q..rsa_d_q+(plen*32)] second RSA private key private
+       exponent CRT component (d_q)
+ * @param[out] dmem[rsa_i_q..rsa_i_q+(plen*32)] RSA private key CRT
+       reconstruction coefficient (i_q)
  *
  * clobbered registers: x2 to x26, x31,
  *                      w2, w3, w4..w[4+(plen-1)], w20 to w30
@@ -62,20 +71,105 @@ rsa_keygen:
        dmem[rsa_q..rsa_q+(plen*32)] <= q */
   jal      x1, generate_q
 
-  /* Multiply p and q to get the public modulus n.
+  /* Derive the private exponent d from p and q.
+       x2 <= zero if d is OK, otherwise nonzero
+       dmem[rsa_p..rsa_p+(plen*32)] <= p - 1.
+       dmem[rsa_p..rsa_p+(plen*32)] <= q - 1. */
+  jal      x1, derive_d
+
+  /* Check that d is large enough. If d is not large enough,
+     then `check_d` will restart the key-generation process. */
+  jal      x1, check_d
+
+  /* Restore constants from above for use in `prepare_pm1qm1`.
+       x20 <= 20
+       x31 <= x30 - 1 */
+  li       x20, 20
+  addi     x31, x30, -1
+
+  /* Compute p - 1 and q - 1.
+       dmem[rsa_pm1..rsa_pm1+(plen*32)] <= p - 1.
+       dmem[rsa_qm1..rsa_qm1+(plen*32)] <= q - 1. */
+  jal      x1, prepare_pm1qm1
+
+  /* Compute CRT component d_p.
+       dmem[rsa_d_p..rsa_d_p+(plen*32)] <= d mod (p - 1). */
+  la       x10, rsa_d_p
+  la       x11, rsa_pm1
+  jal      x1, derive_crt_component
+
+  /* Compute CRT component d_q.
+       dmem[rsa_d_q..rsa_d_q+(plen*32)] <= d mod (q - 1). */
+  la       x10, rsa_d_q
+  la       x11, rsa_qm1
+  jal      x1, derive_crt_component
+
+  /* Compute CRT coefficient i_q, the inverse of q mod p.
+       dmem[rsa_i_q..rsa_i_q+(plen*32)] <= q^(-1) mod p. */
+  la       x11, rsa_q
+  la       x12, rsa_p
+  la       x13, rsa_i_q
+  la       x14, rsa_pm1
+  la       x15, rsa_qm1
+  la       x16, mont_m0inv
+  la       x17, mont_rr
+  la       x18, tmp_scratchpad
+  jal      x1, modinv
+
+  /* Multiply p and q to get the public modulus n (tail-call).
        dmem[rsa_n..rsa_n+(plen*2*32)] <= p * q */
   la       x10, rsa_p
   la       x11, rsa_q
   la       x12, rsa_n
-  jal      x1, bignum_mul
+  jal      x0, bignum_mul
 
-  /* Derive the private exponent d from p and q.
-       x2 <= zero if d is OK, otherwise nonzero */
-  jal      x1, derive_d
 
-  /* Check that d is large enough (tail-call). If d is not large enough,
-     then `check_d` will restart the key-generation process. */
-  jal      x0, check_d
+
+/**
+ * Subtract one from both RSA cofactors p and q, in preparation for computation
+ * of the CRT components of the RSA private exponent d.
+ *
+ * This function writes p-1 and q-1 to the regions of memory following the
+ * labels `rsa_pm1` and `rsa_qm1` respectively.
+ *
+ * Flags: Flags have no meaning beyond the scope of this subroutine.
+ *
+ * @param[in] dmem[rsa_p..rsa_p+(plen*32)]: first prime p
+ * @param[in] dmem[rsa_q..rsa_q+(plen*32)]: second prime q
+ * @param[in]  x20: 20, constant
+ * @param[in]  x31: plen-1, number of 256-bit limbs for p and q minus one
+ * @param[out] dmem[rsa_pm1..rsa_pm1+(plen*32)]: result, p-1
+ * @param[out] dmem[rsa_qm1..rsa_qm1+(plen*32)]: result, q-1
+ * clobbered registers: x10, x11, w20
+ * clobbered flag groups: none
+ */
+prepare_pm1qm1:
+  /* Subtract 1 from p (no carry from lowest limb since p is odd).
+       dmem[rsa_pm1..rsa_pm1+(plen*32)] <= p - 1 */
+  la       x10, rsa_p
+  la       x11, rsa_pm1
+  bn.lid   x20, 0(x10++)
+  bn.subi  w20, w20, 1
+  bn.sid   x20, 0(x11++)
+
+  loop     x31, 2
+    bn.lid   x20, 0(x10++)
+    bn.sid   x20, 0(x11++)
+
+  /* Subtract 1 from q (no carry from lowest limb since p is odd).
+       dmem[rsa_qm1..rsa_qm1+(plen*32)] <= q - 1 */
+  la       x10, rsa_q
+  la       x11, rsa_qm1
+  bn.lid   x20, 0(x10++)
+  bn.subi  w20, w20, 1
+  bn.sid   x20, 0(x11++)
+
+  loop     x31, 2
+    bn.lid   x20, 0(x10++)
+    bn.sid   x20, 0(x11++)
+
+  ret
+
 
 /**
  * Derive the private RSA exponent d.
@@ -96,6 +190,7 @@ rsa_keygen:
  * @param[in]  x20: 20, constant
  * @param[in]  x21: 21, constant
  * @param[in]  x30: plen, number of 256-bit limbs for p and q
+ * @param[in]  x31: plen-1
  * @param[in]  w31: all-zero
  * @param[out] dmem[rsa_d..rsa_d+(plen*2*32)]: result, private exponent d
  *
@@ -103,21 +198,12 @@ rsa_keygen:
  * clobbered flag groups: FG0, FG1
  */
 derive_d:
-  /* Load pointers to p, q, and the result buffer. */
-  la       x10, rsa_p
-  la       x11, rsa_q
+  /* Prepare p - 1 and q - 1 */
+  jal      x1, prepare_pm1qm1
 
-  /* Subtract 1 from p in-place (no carry from lowest limb since p is odd).
-       dmem[rsa_p..rsa_p+(plen*32)] <= p - 1 */
-  bn.lid   x20, 0(x10)
-  bn.subi  w20, w20, 1
-  bn.sid   x20, 0(x10)
-
-  /* Subtract 1 from q in-place (no carry from lowest limb since p is odd).
-       dmem[rsa_q..rsa_q+(plen*32)] <= q - 1 */
-  bn.lid   x20, 0(x11)
-  bn.subi  w20, w20, 1
-  bn.sid   x20, 0(x11)
+  /* Load pointers to pm1, qm1, and the result buffer. */
+  la       x10, rsa_pm1
+  la       x11, rsa_qm1
 
   /* Compute the LCM of (p-1) and (q-1) and store in the scratchpad.
        dmem[tmp_scratchpad] <= LCM(p-1,q-1) */
@@ -135,11 +221,61 @@ derive_d:
   la       x12, tmp_scratchpad
   la       x13, rsa_d
   la       x14, rsa_cofactor
-  la       x15, rsa_pq
+  la       x15, rsa_d_crt
   jal      x1, modinv_f4
 
   /* Reset the limb count.
        x30 <= (plen*2) >> 1 = n */
+  srli     x30, x30, 1
+  ret
+
+/**
+ * Derive a private RSA exponent CRT component from the private exponent d.
+ *
+ * The supplied value at `dptr_pm1` must be n limbs as a requirement of `div`,
+ * but this function ignores the most significant n/2 limbs, zero-extending the
+ * least significant n/2 limbs to the full buffer.
+ *
+ * @param[in]  x10: dptr_d_p, pointer to buffer to store result in DMEM (n limbs)
+ * @param[in]  x11: dptr_pm1, pointer to (p - 1) to reduce modulo in DMEM (n limbs)
+ * @param[in]  x20: 20, constant
+ * @param[in]  x30: plen, number of 256-bit limbs for p and q
+ * @param[in]  w31: all-zero
+ * @param[out] dmem[dptr_d_p..dptr_d_p+(plen*32)]: result, CRT component d_p
+ *
+ * clobbered registers: x2 to x5, x8, x11 to x13, x23 to x25, w20, w23 to w27
+ * clobbered flag groups: FG0
+ */
+derive_crt_component:
+  /* Copy (cofactor - 1) to the start of the scratchpad to zero-extend it. */
+  la       x12, tmp_scratchpad
+  loop     x30, 2
+    bn.lid   x20, 0(x11++)
+    bn.sid   x20, 0(x12++)
+
+  /* Zero out the remainder of the scratchpad to perform the zero-extend. */
+  li       x2, 31
+  loop     x30, 1
+    bn.sid   x2, 0(x12++)
+
+  /* Update the number of limbs for the copy of d and call to div.
+       x30 <= plen*2 */
+  add      x30, x30, x30
+
+  /* Copy the full value of d to dptr_d_p. */
+  la       x12, rsa_d
+  addi     x13, x10, 0
+  loop     x30, 2
+    bn.lid   x20, 0(x12++)
+    bn.sid   x20, 0(x13++)
+
+  /* Call div to compute the value of d_p. */
+  la       x11, tmp_scratchpad
+  la       x12, rsa_n
+  jal      x1, div
+
+  /* Reset the limb count.
+       x30 <= (plen*2) >> 1 = plen */
   srli     x30, x30, 1
   ret
 
@@ -208,7 +344,15 @@ check_d:
  * @param[in] dmem[rsa_n..rsa_n+(plen*2*32)] RSA public key modulus (n)
  * @param[in] dmem[rsa_cofactor..rsa_cofactor+(plen*32)] Cofactor (p or q)
  * @param[out] dmem[rsa_n..rsa_n+(plen*2*32)] Recomputed public key modulus (n)
- * @param[out] dmem[rsa_d..rsa_d+(plen*2*32)] RSA private exponent (d)
+ * @param[out] dmem[rsa_p..rsa_p+(plen*2*32)] First (recomputed) private key
+       prime (p)
+ * @param[out] dmem[rsa_q..rsa_q+(plen*2*32)] Second private key prime (q)
+ * @param[out] dmem[rsa_d_p..rsa_d_p+(plen*2*32)] First RSA private key private
+       exponent CRT component (d_p)
+ * @param[out] dmem[rsa_d_q..rsa_d_q+(plen*2*32)] Second RSA private key
+       private exponent CRT component (d_q)
+ * @param[out] dmem[rsa_i_q..rsa_i_q+(plen*2*32)] RSA private key CRT
+       reconstruction coefficient (i_q)
  *
  * clobbered registers: x2 to x8, x10 to x15, x20 to x26, x31, w3, w20 to w28
  * clobbered flag groups: FG0, FG1
@@ -219,6 +363,11 @@ rsa_key_from_cofactor:
        x21 <= 21 */
   li       x20, 20
   li       x21, 21
+
+  /* Compute (<# of limbs> - 1), a helpful constant for later computations.
+       x31 <= x30 - 1 */
+  addi     x2, x0, 1
+  sub      x31, x30, x2
 
   /* Get a pointer to the end of the cofactor.
        x2 <= rsa_cofactor + plen*32 */
@@ -260,15 +409,52 @@ rsa_key_from_cofactor:
     bn.lid   x3, 0(x11++)
     bn.sid   x3, 0(x2++)
 
+  /* Derive the private exponent d from p and q (tail-call). */
+  jal      x1, derive_d
+
+  /* Restore constants from above for use in `prepare_pm1qm1`.
+       x20 <= 20
+       x31 <= x30 - 1 */
+  li       x20, 20
+  addi     x2, x0, 1
+  sub      x31, x30, x2
+
+  /* Compute p - 1 and q - 1.
+       dmem[rsa_pm1..rsa_pm1+(plen*32)] <= p - 1.
+       dmem[rsa_qm1..rsa_qm1+(plen*32)] <= q - 1. */
+  jal      x1, prepare_pm1qm1
+
+  /* Compute CRT component d_p.
+       dmem[rsa_d_p..rsa_d_p+(plen*32)] <= d mod (p - 1). */
+  la       x10, rsa_d_p
+  la       x11, rsa_pm1
+  jal      x1, derive_crt_component
+
+  /* Compute CRT component d_q.
+       dmem[rsa_d_q..rsa_d_q+(plen*32)] <= d mod (q - 1). */
+  la       x10, rsa_d_q
+  la       x11, rsa_qm1
+  jal      x1, derive_crt_component
+
+  /* Compute CRT coefficient i_q, the inverse of q mod p
+     (tail-call).
+       dmem[rsa_i_q..rsa_i_q+(plen*32)] <= q^(-1) mod p. */
+  la       x11, rsa_q
+  la       x12, rsa_p
+  la       x13, rsa_i_q
+  la       x14, rsa_pm1
+  la       x15, rsa_qm1
+  la       x16, mont_m0inv
+  la       x17, mont_rr
+  la       x18, tmp_scratchpad
+  jal      x1, modinv
+
   /* Multiply p and q to get the public modulus n.
        dmem[rsa_n..rsa_n+(plen*2*32)] <= p * q */
   la       x10, rsa_p
   la       x11, rsa_q
   la       x12, rsa_n
-  jal      x1, bignum_mul
-
-  /* Derive the private exponent d from p and q (tail-call). */
-  jal      x0, derive_d
+  jal      x0, bignum_mul
 
 /**
  * Compute the inverse of 65537 modulo a given number.
@@ -286,55 +472,12 @@ rsa_key_from_cofactor:
  * proven mathematically correct in Coq, see:
  *   https://github.com/mit-plv/fiat-crypto/pull/333
  *
- * In pseudocode,the BoringSSL algorithm is:
- *   A, B, C, D = 1, 0, 0, 1
- *   u = x
- *   v = y
- *   // Loop invariants:
- *   //   A*x - B*y = u
- *   //   D*y - C*x = v
- *   //   gcd(u, v) = gcd(x, y)
- *   //   bitlen(u) + bitlen(v) <= i
- *   //   0 < u <= x
- *   //   0 <= v <= y
- *   //   0 <= A, C < y
- *   //   0 <= B, D <= x
- *   for i=bitlen(x) + bitlen(y)..1:
- *     if u and v both odd:
- *       if v < u:
- *         u = u - v
- *         A = (A + C) mod y
- *         B = (B + D) mod x
- *       else:
- *         v = v - u
- *         C = (A + C) mod y
- *         D = (B + D) mod x
- *     // At this point, the invariant holds and >= 1 of u and v is even
- *     if u is even:
- *       u >>= 1
- *       if (A[0] | B[0]):
- *         A = (A + y) / 2
- *         B = (B + x) / 2
- *       else:
- *         A >>= 1
- *         B >>= 1
- *     if v is even:
- *       v >>= 1
- *       if (C[0] | D[0]):
- *         C = (C + x) / 2
- *         D = (D + y) / 2
- *       else:
- *         C >>= 1
- *         D >>= 1
- *    // End of loop. Guarantees the invariant plus u = gcd(x,y).
+ * For details on the source and formal verification of the algorithm used, see
+ * the documentation for `modinv` in modinv.s. Note that while `modinv` allows
+ * for any value of a, this algorithm is specialized to  to a = 65537 (the
+ * fourth Fermat prime, F4).
  *
- * As described in HAC note 14.64, this algorithm computes a modular inverse
- * when gcd(x,y) = 1. Specifically, at termination, A = x^-1 mod y because:
- *   (A*x) mod y = (A*x - B*y) mod y = u mod y = 1
- *
- * Of course, all the if statements are implemented with constant-time selects.
- *
- * The fully specialized and constant-time version of the pseudocode is:
+ * For completeness, the constant-time version of the pseudocode we use is:
  *   A, C = 1, 0
  *   u = 65537
  *   v = m
@@ -441,7 +584,7 @@ modinv_f4:
   addi     x31, x31, 17
 
   /* Main loop. */
-  loop     x31, 120
+  loop     x31, 122
     /* Load the least significant limb of v.
          w20 <= dmem[dptr_v] = v[255:0] */
     bn.lid   x20, 0(x15)
@@ -535,10 +678,13 @@ modinv_f4:
       /* FG1.C <= w23 <? m[i] + FG1.C */
       bn.cmpb  w23, w20, FG1
 
-    /* Capture FG1.C as a mask that is all 1s if we should subtract the modulus.
-         w26 <= FG1.C ? 0 : 2^256 - 1 */
+    /* Capture ~FG0.C & FG1.C as a mask that is all 1s if we should subtract
+       the modulus.
+         w26 <= (~FG0.C & FG1.C) ? 0 : 2^256 - 1 */
+    bn.subb  w23, w31, w31, FG0
     bn.subb  w26, w31, w31, FG1
     bn.not   w26, w26
+    bn.or    w26, w23, w26
 
     /* Clear flags for both groups. */
     bn.sub   w31, w31, w31, FG0
@@ -1712,10 +1858,30 @@ is_zero_mod_small_prime:
 
 .section .scratchpad
 
-/* Extra label marking the start of p || q in memory. The `derive_d` function
-   uses this to get a 512-byte working buffer, which means p and q must be
-   continuous in memory. In addition, `rsa_key_from_cofactor` uses the
-   larger buffer for division and depends on the order of `p` and `q`. */
+/* RSA private exponent d. Up to 4096 bits; also used as a temporary work buffer
+  containing `mont_m0inv` and `mont_rr`. */
+.balign 32
+rsa_d:
+
+/* Montgomery constant m0' (256 bits). */
+.balign 32
+mont_m0inv:
+.zero 256
+
+/* Montgomery constant R^2 (up to 2048 bits). */
+.balign 32
+mont_rr:
+.zero 256
+
+/* Temporary working buffer (4096 bits). */
+.balign 32
+tmp_scratchpad:
+.zero 512
+
+.bss
+
+/* Secret RSA cofactors; also used as a temporary work buffer containing `rsa_p`
+   and `rsa_q`. */
 .balign 32
 rsa_pq:
 
@@ -1729,38 +1895,54 @@ rsa_p:
 rsa_q:
 .zero 256
 
-/* Temporary working buffer (4096 bits). */
-.balign 32
-tmp_scratchpad:
-.zero 512
-
-.bss
-
-/* RSA modulus n = p*q (up to 4096 bits). */
+/* RSA modulus n = p*q (up to 4096 bits); also used as a temporary work buffer
+   when computing private exponent CRT components. */
 .balign 32
 .globl rsa_n
 rsa_n:
 .zero 512
 
-/* RSA private exponent d (up to 4096 bits). */
+/* RSA private exponent CRT components; also used as a temporary work buffer
+   containing `rsa_d_p` and `rsa_d_q`. */
 .balign 32
-.globl rsa_d
-rsa_d:
-.zero 512
+rsa_d_crt:
+
+/* RSA private exponent CRT component d_p = d mod (p - 1) (up to 2048 bits). */
+.balign 32
+.globl rsa_d_p
+rsa_d_p:
+.zero 256
+
+/* RSA private exponent CRT component d_q = d mod (q - 1) (up to 2048 bits). */
+.balign 32
+.globl rsa_d_q
+rsa_d_q:
+.zero 256
+
+/* RSA private CRT coefficient i_q = q^(-1) mod p (up to 2048 bits). */
+.balign 32
+.globl rsa_i_q
+rsa_i_q:
+.zero 256
 
 /* Prime cofactor for n for `rsa_key_from_cofactor`; also used as a temporary
- * work buffer. */
+ * work buffer containing `rsa_pm1` and `rsa_pm2`. */
 .balign 32
 .globl rsa_cofactor
 rsa_cofactor:
-.zero 512
 
-/* Montgomery constant m0' (256 bits). */
+/* Temporary work buffer inside `rsa_cofactor` for holding RSA `p` parameter
+   (prime) minus one. Up to 2048 bits; intermediate value used to derive CRT
+   coefficients. */
 .balign 32
-mont_m0inv:
-.zero 32
+.globl rsa_pm1
+rsa_pm1:
+.zero 256
 
-/* Montgomery constant R^2 (up to 2048 bits). */
+/* Temporary work buffer inside `rsa_cofactor` for holding RSA `q` parameter
+   (prime) minus one. Up to 2048 bits; intermediate value used to derive CRT
+   coefficients. */
 .balign 32
-mont_rr:
+.globl rsa_qm1
+rsa_qm1:
 .zero 256

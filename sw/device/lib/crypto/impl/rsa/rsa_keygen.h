@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -34,7 +35,7 @@ status_t rsa_keygen_2048_start(void);
  * done processing.
  *
  * @param[out] public_key Generated public key (n, e).
- * @param[out] private_key Generated private key (d, e).
+ * @param[out] private_key Generated private key (p, q, d_p, d_q, i_q).
  * @return Result of the operation (OK or error).
  */
 status_t rsa_keygen_2048_finalize(rsa_2048_public_key_t *public_key,
@@ -58,7 +59,7 @@ status_t rsa_keygen_3072_start(void);
  * done processing.
  *
  * @param[out] public_key Generated public key (n, e).
- * @param[out] private_key Generated private key (d, e).
+ * @param[out] private_key Generated private key (p, q, d_p, d_q, i_q).
  * @return Result of the operation (OK or error).
  */
 status_t rsa_keygen_3072_finalize(rsa_3072_public_key_t *public_key,
@@ -82,7 +83,7 @@ status_t rsa_keygen_4096_start(void);
  * done processing.
  *
  * @param[out] public_key Generated public key (n, e).
- * @param[out] private_key Generated private key (d, e).
+ * @param[out] private_key Generated private key (p, q, d_p, d_q, i_q).
  * @return Result of the operation (OK or error).
  */
 status_t rsa_keygen_4096_finalize(rsa_4096_public_key_t *public_key,
@@ -102,8 +103,7 @@ status_t rsa_keygen_4096_finalize(rsa_4096_public_key_t *public_key,
  * @return Result of the operation (OK or error).
  */
 status_t rsa_keygen_from_cofactor_2048_start(
-    const rsa_2048_public_key_t *public_key,
-    const rsa_2048_cofactor_t *cofactor);
+    const rsa_2048_public_key_t *public_key, const rsa_2048_short_t *cofactor);
 
 /**
  * Waits for an RSA-2048 key-from-cofactor operation to complete.
@@ -116,7 +116,7 @@ status_t rsa_keygen_from_cofactor_2048_start(
  * was passed to OTBN originally in order to check for errors.
  *
  * @param[out] public_key Generated public key (n, e).
- * @param[out] private_key Generated private key (d, e).
+ * @param[out] private_key Generated private key (p, q, d_p, d_q, i_q).
  * @return Result of the operation (OK or error).
  */
 status_t rsa_keygen_from_cofactor_2048_finalize(

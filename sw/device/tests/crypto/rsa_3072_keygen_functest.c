@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -64,24 +65,9 @@ status_t keygen_then_sign_test(void) {
 
   // Interpret private key using internal RSA datatype.
   TRY_CHECK(private_key.keyblob_length == sizeof(rsa_3072_private_key_t));
-  rsa_3072_private_key_t *sk = (rsa_3072_private_key_t *)private_key.keyblob;
 
   // Check that the key uses the F4 exponent.
   TRY_CHECK(pk->e == 65537);
-
-  // Check that the moduli match.
-  TRY_CHECK(ARRAYSIZE(pk->n.data) == ARRAYSIZE(sk->n.data));
-  TRY_CHECK_ARRAYS_EQ(pk->n.data, sk->n.data, ARRAYSIZE(pk->n.data));
-
-  // Check that d is at least 2^(len(n) / 2) (this is a FIPS requirement) by
-  // ensuring that the most significant half is nonzero.
-  bool d_large_enough = false;
-  for (size_t i = kRsa3072NumWords / 2; i < kRsa3072NumWords; i++) {
-    if (sk->d.data[i] != 0) {
-      d_large_enough = true;
-    }
-  }
-  TRY_CHECK(d_large_enough);
 
   // Hash the message.
   otcrypto_const_byte_buf_t msg_buf = {
@@ -112,8 +98,8 @@ status_t keygen_then_sign_test(void) {
   LOG_INFO("Signature generation complete.");
   LOG_INFO("OTBN instruction count: %u", otbn_instruction_count_get());
 
-  // Try to verify the signature. If something is wrong with the key (nonprime
-  // p and q, incorrect d), then this is likely to fail.
+  // Try to verify the signature. If something is wrong with the key (nonprime p
+  // and q, incorrect CRT components of d, etc.), then this is likely to fail.
   LOG_INFO("Starting signature verification...");
   hardened_bool_t verification_result;
   TRY(otcrypto_rsa_verify(&public_key, msg_digest, kOtcryptoRsaPaddingPkcs,

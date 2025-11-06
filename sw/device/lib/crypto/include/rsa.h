@@ -1,4 +1,5 @@
 // Copyright lowRISC contributors (OpenTitan project).
+// Copyright zeroRISC Inc.
 // Licensed under the Apache License, Version 2.0, see LICENSE for details.
 // SPDX-License-Identifier: Apache-2.0
 
@@ -72,16 +73,16 @@ enum {
    * to change. This is the length that the caller should set in
    * `keyblob_length` and allocate for the `keyblob` buffer in blinded keys.
    */
-  kOtcryptoRsa2048PrivateKeyblobBytes = 512,
-  kOtcryptoRsa3072PrivateKeyblobBytes = 768,
-  kOtcryptoRsa4096PrivateKeyblobBytes = 1024,
+  kOtcryptoRsa2048PrivateKeyblobBytes = 640,
+  kOtcryptoRsa3072PrivateKeyblobBytes = 960,
+  kOtcryptoRsa4096PrivateKeyblobBytes = 1280,
 };
 
 /**
  * Performs the RSA key generation.
  *
- * Computes RSA private key (d) and RSA public key exponent (e) and
- * modulus (n).
+ * Computes RSA private key (p, q, d_p, d_q, i_q) as well as RSA public key
+ * exponent (e) and modulus (n).
  *
  * The caller should allocate space for the public key and set the `key` and
  * `key_length` fields accordingly.
@@ -126,16 +127,20 @@ otcrypto_status_t otcrypto_rsa_public_key_construct(
  *
  * @param size RSA size parameter.
  * @param modulus RSA modulus (n).
- * @param exponent RSA public exponent (e).
- * @param d_share0 First share of the RSA private exponent d.
- * @param d_share1 Second share of the RSA private exponent d.
+ * @param p First cofactor of RSA modulus (p).
+ * @param q Second cofactor of RSA modulus (q).
+ * @param e RSA public exponent (e).
+ * @param d_p First CRT component of the RSA private exponent d (d_p).
+ * @param d_q Second CRT component of the RSA private exponent d (d_q).
+ * @param i_q CRT reconstruction coefficient for given cofactors (i_q).
  * @param[out] public_key Destination public key struct.
  * @return Result of the RSA key construction.
  */
 otcrypto_status_t otcrypto_rsa_private_key_from_exponents(
-    otcrypto_rsa_size_t size, otcrypto_const_word32_buf_t modulus, uint32_t e,
-    otcrypto_const_word32_buf_t d_share0, otcrypto_const_word32_buf_t d_share1,
-    otcrypto_blinded_key_t *private_key);
+    otcrypto_rsa_size_t size, otcrypto_const_word32_buf_t modulus,
+    otcrypto_const_word32_buf_t p, otcrypto_const_word32_buf_t q, uint32_t e,
+    otcrypto_const_word32_buf_t d_p, otcrypto_const_word32_buf_t d_q,
+    otcrypto_const_word32_buf_t i_q, otcrypto_blinded_key_t *private_key);
 
 /**
  * Constructs an RSA keypair from the public key and one prime cofactor.

@@ -1,8 +1,5 @@
-# Copyright zeroRISC Inc.
-# Licensed under the Apache License, Version 2.0, see LICENSE for details.
-# SPDX-License-Identifier: Apache-2.0
-
 # Copyright lowRISC contributors (OpenTitan project).
+# Copyright zeroRISC Inc.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
@@ -926,6 +923,25 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+        "//sw/otbn/crypto:primality",
+        "//sw/otbn/crypto:rsa_keygen",
+    ],
+)
+
+otbn_sim_test(
+    name = "modinv_test",
+    srcs = [
+        "modinv_test.s",
+    ],
+    exp = "modinv_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:gcd",
+        "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -958,6 +974,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -986,6 +1003,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1003,6 +1021,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1020,6 +1039,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1037,6 +1057,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1054,6 +1075,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1071,6 +1093,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1088,6 +1111,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1115,6 +1139,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1134,6 +1159,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:rsa_keygen",
@@ -1152,6 +1178,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1172,6 +1199,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1191,6 +1219,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:primality",
@@ -1210,6 +1239,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:rsa_keygen",
@@ -1228,6 +1258,7 @@ otbn_sim_test(
         "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:gcd",
         "//sw/otbn/crypto:lcm",
+        "//sw/otbn/crypto:modinv",
         "//sw/otbn/crypto:montmul",
         "//sw/otbn/crypto:mul",
         "//sw/otbn/crypto:rsa_keygen",
@@ -1242,8 +1273,25 @@ otbn_sim_test(
     ],
     exp = "rsa_1024_dec_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+    ],
+)
+
+otbn_sim_test(
+    name = "rsa_1024_dec_crt_test",
+    timeout = "long",
+    srcs = [
+        "rsa_1024_dec_crt_test.s",
+    ],
+    exp = "rsa_1024_dec_crt_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1254,8 +1302,10 @@ otbn_sim_test(
     ],
     exp = "rsa_1024_enc_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1267,8 +1317,25 @@ otbn_sim_test(
     ],
     exp = "rsa_2048_dec_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+    ],
+)
+
+otbn_sim_test(
+    name = "rsa_2048_dec_crt_test",
+    timeout = "eternal",
+    srcs = [
+        "rsa_2048_dec_crt_test.s",
+    ],
+    exp = "rsa_2048_dec_crt_test.exp",
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1279,8 +1346,10 @@ otbn_sim_test(
     ],
     exp = "rsa_2048_enc_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1293,8 +1362,26 @@ otbn_sim_test(
     exp = "rsa_3072_dec_test.exp",
     tags = ["nightly"],  # slow, do not run in CI
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
+    ],
+)
+
+otbn_sim_test(
+    name = "rsa_3072_dec_crt_test",
+    timeout = "eternal",
+    srcs = [
+        "rsa_3072_dec_crt_test.s",
+    ],
+    exp = "rsa_3072_dec_crt_test.exp",
+    tags = ["nightly"],  # slow, do not run in CI
+    deps = [
+        "//sw/otbn/crypto:div",
+        "//sw/otbn/crypto:modexp",
+        "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1305,8 +1392,10 @@ otbn_sim_test(
     ],
     exp = "rsa_3072_enc_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
@@ -1317,8 +1406,10 @@ otbn_sim_test(
     ],
     exp = "rsa_4096_enc_test.exp",
     deps = [
+        "//sw/otbn/crypto:div",
         "//sw/otbn/crypto:modexp",
         "//sw/otbn/crypto:montmul",
+        "//sw/otbn/crypto:mul",
     ],
 )
 
