@@ -19,16 +19,12 @@ shift 2
 
 # Copy bitstreams and related files into the cache directory so Bazel will have
 # the corresponding targets in the @bitstreams workspace.
-readonly BIT_CACHE_DIR="${HOME}/.cache/opentitan-bitstreams/cache/ci_bitstreams"
-if [ "${fpga}" = "hyper310" ]; then
-    readonly BIT_SRC_DIR="${BIN_DIR}/hw/top_earlgrey/chip_earlgrey_cw310_hyperdebug"
-else
-    readonly BIT_SRC_DIR="${BIN_DIR}/hw/top_earlgrey/chip_earlgrey_${fpga}"
-fi
+COMMIT="$(git rev-parse HEAD)"
+readonly COMMIT
+readonly BIT_CACHE_DIR="${HOME}/.cache/opentitan-bitstreams/cache/${COMMIT}"
+readonly BIT_SRC_DIR="${BIN_DIR}/hw/top_earlgrey"
 mkdir -p "${BIT_CACHE_DIR}"
 cp -rt "${BIT_CACHE_DIR}" "${BIT_SRC_DIR}"/*
-
-export BITSTREAM="--offline --list ci_bitstreams"
 
 # We will lose serial access when we reboot, but if tests fail we should reboot
 # in case we've crashed the UART handler on the CW310's SAM3U
@@ -53,6 +49,7 @@ export BITSTREAM="--offline --list ci_bitstreams"
 ./bazelisk.sh test \
     --run_under=//ci/scripts:run_test \
     --define DISABLE_VERILATOR_BUILD=true \
+    --repo_env BITSTREAM="--offline --list ${COMMIT}" \
     --nokeep_going \
     --test_output=all \
     --build_tests_only \
