@@ -13,6 +13,14 @@ on:
       vivado_version:
         default: "2024.1"
         type: string
+      license-host:
+        description: Hostname of the license server.
+        type: string
+        default: 'license-server'
+      license-port:
+        description: Port on license-server that the license server is serving on.
+        type: string
+        default: '2100'
 
 jobs:
   bitstream:
@@ -27,8 +35,6 @@ jobs:
       - name: Prepare environment
         uses: ./.github/actions/prepare-env
         with:
-          ts-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          ts-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           vivado-version: ${{ inputs.vivado_version }}
       - name: Configure bitstream strategy
         id: strategy
@@ -57,6 +63,29 @@ jobs:
           ./bazelisk.sh build "${cached_archive}"
           bitstream_archive=$(./bazelisk.sh outquery "${cached_archive}")
           cp -Lv ${bitstream_archive} build-bin.tar
+
+      - name: Authenticate to tailscale to access license server
+        if: steps.strategy.outputs.bitstreamStrategy != 'cached'
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscaled-args: '--tun=userspace-networking'
+          tags: 'ci-runner'
+          version: '1.84.0'
+          use-cache: 'true'
+
+      - name: Setup license server client
+        if: steps.strategy.outputs.bitstreamStrategy != 'cached'
+        run: |
+          LICENSE_SERVER_IP=$(
+            tailscale status --json | \
+            jq --join-output --raw-output \
+            '.Peer[] | select(.HostName  == "${{ inputs.license-host }}") | .TailscaleIPs[0]'
+          )
+          sudo bash -c "echo $LICENSE_SERVER_IP ${{ inputs.license-host }} >> /etc/hosts"
+          echo "XILINXD_LICENSE_FILE=${{ inputs.license-port }}@${{ inputs.license-host }}" >> $GITHUB_ENV
+        shell: bash
 
       - name: Build and splice bitstream with Vivado
         if: steps.strategy.outputs.bitstreamStrategy != 'cached'
