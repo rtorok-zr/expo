@@ -16,6 +16,7 @@ cc_library(
         ":hash_commands",
         ":hmac_commands",
         ":kmac_commands",
+        ":rsa_commands",
         "//sw/device/lib/ujson",
     ],
 )
@@ -59,6 +60,13 @@ cc_library(
     name = "ecdh_commands",
     srcs = ["ecdh_commands.c"],
     hdrs = ["ecdh_commands.h"],
+    deps = ["//sw/device/lib/ujson"],
+)
+
+cc_library(
+    name = "rsa_commands",
+    srcs = ["rsa_commands.c"],
+    hdrs = ["rsa_commands.h"],
     deps = ["//sw/device/lib/ujson"],
 )
 

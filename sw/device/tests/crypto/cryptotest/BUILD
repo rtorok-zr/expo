@@ -1,3 +1,7 @@
+# Copyright zeroRISC Inc.
+# Licensed under the Apache License, Version 2.0, see LICENSE for details.
+# SPDX-License-Identifier: Apache-2.0
+
 # Copyright lowRISC contributors (OpenTitan project).
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
@@ -480,4 +484,128 @@ test_suite(
         ":shake256_kat",
         ":sphincsplus_kat",
     ],
+)
+
+WYCHEPROOF_RSA_OAEP_SUFFIXES = {
+    2048: [
+        "sha256_mgf1sha256",
+        "sha384_mgf1sha384",
+        "sha512_mgf1sha512",
+    ],
+    3072: [
+        "sha256_mgf1sha256",
+        "sha512_mgf1sha512",
+    ],
+    4096: [
+        "sha256_mgf1sha256",
+        "sha512_mgf1sha512",
+    ],
+}
+
+WYCHEPROOF_RSA_PKCS1_15_SUFFIXES = {
+    2048: [
+        "sha256",
+        "sha384",
+        "sha512",
+        "sha3_224",
+        "sha3_256",
+        "sha3_384",
+        "sha3_512",
+    ],
+    3072: [
+        "sha256",
+        "sha384",
+        "sha512",
+        "sha3_256",
+        "sha3_384",
+        "sha3_512",
+    ],
+    4096: [
+        "sha256",
+        "sha384",
+        "sha512",
+    ],
+}
+
+WYCHEPROOF_RSA_PSS_SUFFIXES = {
+    2048: [
+        # TODO uncomment if RSA supports salt_length != hash_digest_length
+        # "sha256_mgf1_0",
+        "sha256_mgf1_32",
+        "sha384_mgf1_48",
+    ],
+    3072: [
+        "sha256_mgf1_32",
+        # TODO uncomment if RSA supports SHAKE
+        # "shake128",
+    ],
+    4096: [
+        "sha256_mgf1_32",
+        "sha384_mgf1_48",
+        # TODO uncomment if RSA supports salt_length != hash_digest_length
+        # "sha512_mgf1_32",
+        "sha512_mgf1_64",
+        # TODO uncomment if RSA supports SHAKE
+        # "shake256",
+    ],
+}
+
+RSA_TESTVECTOR_TARGETS = [
+    "//sw/host/cryptotest/testvectors/data:wycheproof_rsa_{}_{}_{}_json".format(
+        padding_mode,
+        security_level,
+        wy_suffix,
+    )
+    for security_level in [
+        2048,
+        3072,
+        4096,
+    ]
+    for padding_mode, wy_padding_mode, operation, suffixes in [
+        (
+            "oaep",
+            "oaep",
+            "decrypt",
+            WYCHEPROOF_RSA_OAEP_SUFFIXES[security_level],
+        ),
+        (
+            "pkcs1_1.5",
+            "signature",
+            "verify",
+            WYCHEPROOF_RSA_PKCS1_15_SUFFIXES[security_level],
+        ),
+        (
+            "pss",
+            "pss",
+            "verify",
+            WYCHEPROOF_RSA_PSS_SUFFIXES[security_level],
+        ),
+    ]
+    for wy_suffix in suffixes
+] + [
+    "//sw/host/cryptotest/testvectors/data:nist_cavp_rsa_{}_{}_json".format(
+        padding_mode,
+        operation,
+    )
+    for padding_mode in [
+        "pkcs1_1.5",
+        "pss",
+    ]
+    for operation in [
+        "sign",
+        "verify",
+    ]
+]
+
+RSA_TESTVECTOR_ARGS = " ".join([
+    "--rsa-json=\"$(rootpath {})\"".format(target)
+    for target in RSA_TESTVECTOR_TARGETS
+])
+
+cryptotest(
+    name = "rsa_kat",
+    slow_test = True,
+    test_args = RSA_TESTVECTOR_ARGS,
+    test_harness = "//sw/host/tests/crypto/rsa_kat:harness",
+    test_vectors = RSA_TESTVECTOR_TARGETS,
 )
