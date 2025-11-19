@@ -19,8 +19,8 @@ use crate::io::jtag::{JtagChain, JtagParams};
 use crate::io::spi::{Target, TransferMode};
 use crate::io::uart::Uart;
 use crate::transport::{
-    Capability, MaintainConnection, ProgressIndicator, ProxyOps, Transport, TransportError,
-    TransportInterfaceType, ioexpander,
+    Capability, ProgressIndicator, ProxyOps, Transport, TransportError, TransportInterfaceType,
+    ioexpander,
 };
 
 use anyhow::{Result, bail, ensure};
@@ -972,7 +972,7 @@ impl TransportWrapper {
 
     pub fn pin_strapping(&self, name: &str) -> Result<PinStrapping> {
         let proxy = if self.capabilities()?.request(Capability::PROXY).ok().is_ok() {
-            Some(self.proxy_ops()?)
+            Some(self.transport.clone())
         } else {
             None
         };
@@ -996,12 +996,12 @@ impl TransportWrapper {
     }
 
     /// Returns a [`Emulator`] implementation.
-    pub fn emulator(&self) -> Result<Rc<dyn Emulator>> {
+    pub fn emulator(&self) -> Result<&dyn Emulator> {
         self.transport.emulator()
     }
 
     /// Methods available only on Proxy implementation.
-    pub fn proxy_ops(&self) -> Result<Rc<dyn ProxyOps>> {
+    pub fn proxy_ops(&self) -> Result<&dyn ProxyOps> {
         self.transport.proxy_ops()
     }
 
@@ -1051,11 +1051,6 @@ impl TransportWrapper {
     /// Configure all pins as input/output, pullup, etc. as declared in configuration files.
     /// Also configure SPI port mode/speed, and other similar settings.
     pub fn apply_default_configuration(&self, strapping_name: Option<&str>) -> Result<()> {
-        // Telling the transport that this function is the exclusive user of the debugger device
-        // for the duration of this function, will allow the transport to keep USB handles open,
-        // for optimization.  (For transports such as the proxy, which does not have any
-        // such optimization, this is a no-op.)
-        let _maintain_connection = self.transport.maintain_connection()?;
         if let Some(strapping_name) = strapping_name {
             if self.capabilities()?.request(Capability::PROXY).ok().is_ok() {
                 self.proxy_ops()?
@@ -1088,11 +1083,6 @@ impl TransportWrapper {
     }
 
     pub fn reset_target(&self, reset_delay: Duration, clear_uart_rx: bool) -> Result<()> {
-        // Telling the transport that this function is the exclusive user of the debugger device
-        // for the duration of this function, will allow the transport to keep USB handles open,
-        // for optimization.  (For transports such as the proxy, which does not have any
-        // such optimization, this is a no-op.)
-        let _maintain_connection = self.transport.maintain_connection()?;
         log::info!("Asserting the reset signal");
         if self.disable_dft_on_reset.get() {
             self.pin_strapping("PRERESET_DFT_DISABLE")?.apply()?;
@@ -1115,11 +1105,20 @@ impl TransportWrapper {
         Ok(())
     }
 
-    /// As long as the returned `MaintainConnection` object is kept by the caller, this driver may
-    /// assume that no other `opentitantool` processes attempt to access the same debugger device.
-    /// This allows for optimizations such as keeping USB handles open across function invocations.
-    pub fn maintain_connection(&self) -> Result<Rc<dyn MaintainConnection>> {
-        self.transport.maintain_connection()
+    /// Invoke the provided callback (preferably) without exclusive access.
+    ///
+    /// By default, ownership of `Transport` would imply exclusive access to the underlying device,
+    /// and optimisation can be made assuming no other process would be simultaneously accessing.
+    /// However for long running commands, such as `opentitantool console`, it may be desirable to
+    /// relinquish exclusive access during such comamnd and only re-take exclusive access later.
+    ///
+    /// Transport that does not support such scenario may ignore such request and perform a no-op.
+    pub fn relinquish_exclusive_access<T>(&self, callback: impl FnOnce() -> T) -> Result<T> {
+        let mut ret = None;
+        self.transport.relinquish_exclusive_access(Box::new(|| {
+            ret = Some(callback());
+        }))?;
+        Ok(ret.unwrap())
     }
 }
 
@@ -1189,7 +1188,7 @@ impl GpioPin for NullPin {
 /// configuration files under a given strapping name.
 pub struct PinStrapping {
     name: String,
-    proxy: Option<Rc<dyn ProxyOps>>,
+    proxy: Option<Rc<dyn Transport>>,
     pins: Vec<StrappedPin>,
 }
 
@@ -1203,10 +1202,10 @@ impl PinStrapping {
     /// Configure the set of pins as strong/weak pullup/pulldown as declared in configuration
     /// files under a given strapping name.
     pub fn apply(&self) -> Result<()> {
-        if let Some(ref proxy_ops) = self.proxy {
+        if let Some(ref transport) = self.proxy {
             // The transport happens to be connected to a remote opentitan session.  First, pass
             // the request to the remote server.
-            if let Err(e) = proxy_ops.apply_pin_strapping(&self.name) {
+            if let Err(e) = transport.proxy_ops()?.apply_pin_strapping(&self.name) {
                 match e.downcast_ref::<TransportError>() {
                     Some(TransportError::InvalidStrappingName(_)) => {
                         if self.pins.is_empty() {
@@ -1232,10 +1231,10 @@ impl PinStrapping {
     /// configuration, that is, to the level declared in the "pins" section of configuration
     /// files, outside of any "strappings" section.
     pub fn remove(&self) -> Result<()> {
-        if let Some(ref proxy_ops) = self.proxy {
+        if let Some(ref transport) = self.proxy {
             // The transport happens to be connection to a remote opentitan session.  Pass
             // request to the remote server.
-            if let Err(e) = proxy_ops.remove_pin_strapping(&self.name) {
+            if let Err(e) = transport.proxy_ops()?.remove_pin_strapping(&self.name) {
                 match e.downcast_ref::<TransportError>() {
                     Some(TransportError::InvalidStrappingName(_)) => {
                         if self.pins.is_empty() {

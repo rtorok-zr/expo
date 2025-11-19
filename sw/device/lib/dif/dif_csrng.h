@@ -93,13 +93,6 @@ typedef enum dif_csrng_cmd_status_kind {
 typedef enum dif_csrng_fifo {
   kDifCsrngFifoCmd,
   kDifCsrngFifoGenBits,
-  kDifCsrngFifoCmdReq,
-  kDifCsrngFifoRcStage,
-  kDifCsrngFifoKeyVrc,
-  kDifCsrngFifoUpdateReq,
-  kDifCsrngFifoBencRec,
-  kDifCsrngFifoBencAck,
-  kDifCsrngFifoPData,
   kDifCsrngFifoFinal,
   kDifCsrngFifoGBencAck,
   kDifCsrngFifoGrcStage,
@@ -120,6 +113,10 @@ typedef enum dif_csrng_error {
    * Indicates an error in the main state machine.
    */
   kDifCsrngErrorMainSm,
+  /**
+   * Indicates an error in the DRBG's command unit state machine.
+   */
+  kDifCsrngErrorDrbgCmdSm,
   /**
    * Indicates an error in the DRBG's generator state machine.
    */

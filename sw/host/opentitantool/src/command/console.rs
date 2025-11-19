@@ -99,7 +99,10 @@ impl CommandDispatch for Console {
                 eprint!("Starting interactive console\r\n");
                 eprint!("[CTRL+C] to exit.\r\n\r\n");
             }
-            console.interact(&*uart, stdin.as_mut().map(|x| x as _), Some(&mut stdout))?
+
+            transport.relinquish_exclusive_access(|| {
+                console.interact(&*uart, stdin.as_mut().map(|x| x as _), Some(&mut stdout))
+            })??
         };
         if !self.non_interactive {
             eprintln!("\n\nExiting interactive console.");
@@ -133,13 +136,5 @@ impl CommandDispatch for Console {
                 Err(anyhow!("Matched exit_failure expression"))
             }
         }
-    }
-
-    /// For optiimzation.  Indicates that this command expects other invocations of
-    /// `opentitantool` to run during the lifespan of the `run()` function above.  Returning
-    /// `false` here will prevent opentitanlib from keeping USB handles open for the duration of
-    /// the `run()` call.
-    fn exclusive_use_of_transport(&self) -> bool {
-        false
     }
 }

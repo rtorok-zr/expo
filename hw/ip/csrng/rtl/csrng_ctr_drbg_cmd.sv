@@ -41,273 +41,179 @@ module csrng_ctr_drbg_cmd import csrng_pkg::*; (
   input  csrng_upd_data_t    update_rsp_data_i,
 
   // Error status outputs
-  output logic         [2:0] fifo_cmdreq_err_o,
-  output logic         [2:0] fifo_rcstage_err_o,
-  output logic         [2:0] fifo_keyvrc_err_o
+  output logic               sm_err_o
 );
 
-  localparam int CmdreqFifoWidth  = CoreDataWidth + SeedLen + 1;
-  localparam int RCStageFifoWidth = CoreDataWidth + 1;
-  localparam int KeyVRCFifoWidth  = CoreDataWidth + 1;
-
   // signals
-  csrng_core_data_t   cmdreq_data;
-  logic [SeedLen-1:0] cmdreq_entropy;
-  logic               cmdreq_glast;
-
-  csrng_core_data_t   rcstage_data;
-  logic               rcstage_glast;
-
-  csrng_core_data_t   keyvrc_data;
-  logic               keyvrc_glast;
+  csrng_core_data_t   req_data;
+  csrng_core_data_t   prep_core_data;
 
   logic [SeedLen-1:0] prep_seed_material;
-  logic [KeyLen-1:0]  prep_key;
-  logic [BlkLen-1:0]  prep_v;
-  logic [CtrLen-1:0]  prep_rc;
-  logic               prep_gen_adata_null;
+  logic  [KeyLen-1:0] prep_key;
+  logic  [BlkLen-1:0] prep_v;
+  logic  [CtrLen-1:0] prep_rc;
+  logic               bypass_upd;
 
-  // cmdreq fifo
-  logic                        sfifo_cmdreq_wvld;
-  logic                        sfifo_cmdreq_wrdy;
-  logic  [CmdreqFifoWidth-1:0] sfifo_cmdreq_wdata;
-  logic                        sfifo_cmdreq_rvld;
-  logic                        sfifo_cmdreq_rrdy;
-  logic  [CmdreqFifoWidth-1:0] sfifo_cmdreq_rdata;
 
-  // rcstage fifo
-  logic                        sfifo_rcstage_wvld;
-  logic                        sfifo_rcstage_wrdy;
-  logic [RCStageFifoWidth-1:0] sfifo_rcstage_wdata;
-  logic                        sfifo_rcstage_rvld;
-  logic                        sfifo_rcstage_rrdy;
-  logic [RCStageFifoWidth-1:0] sfifo_rcstage_rdata;
+  // Encoding generated with:
+  // $ ./util/design/sparse-fsm-encode.py -d 3 -m 3 -n 5 \
+  //     -s 68469135 --language=sv
+  //
+  // Hamming distance histogram:
+  //
+  //  0: --
+  //  1: --
+  //  2: --
+  //  3: |||||||||||||||||||| (66.67%)
+  //  4: |||||||||| (33.33%)
+  //  5: --
+  //
+  // Minimum Hamming distance: 3
+  // Maximum Hamming distance: 4
+  // Minimum Hamming weight: 1
+  // Maximum Hamming weight: 3
+  //
+  localparam int StateWidth = 5;
+  typedef enum logic [StateWidth-1:0] {
+    ReqIdle = 5'b10000,
+    RspPend = 5'b01010,
+    Error   = 5'b00111
+  } state_e;
 
-  // keyvrc fifo
-  logic                        sfifo_keyvrc_wvld;
-  logic                        sfifo_keyvrc_wrdy;
-  logic [KeyVRCFifoWidth-1:0]  sfifo_keyvrc_wdata;
-  logic                        sfifo_keyvrc_rvld;
-  logic                        sfifo_keyvrc_rrdy;
-  logic [KeyVRCFifoWidth-1:0]  sfifo_keyvrc_rdata;
+  state_e state_d, state_q;
 
-  // flops
-  logic                        gen_adata_null_q, gen_adata_null_d;
-
-  always_ff @(posedge clk_i or negedge rst_ni) begin
-    if (!rst_ni) begin
-      gen_adata_null_q <= '0;
-    end else begin
-      gen_adata_null_q <= gen_adata_null_d;
-    end
-  end
+  // SEC_CM: UPDRSP.FSM.SPARSE
+  `PRIM_FLOP_SPARSE_FSM(u_state_regs, state_d, state_q, state_e, ReqIdle)
 
   //--------------------------------------------
-  // input request fifo for staging cmd request
+  // Prepare/mux values for update step
   //--------------------------------------------
-
-  csrng_core_data_t req_data_fifo;
-
-  prim_fifo_sync #(
-    .Width(CmdreqFifoWidth),
-    .Pass(0),
-    .Depth(1),
-    .OutputZeroIfEmpty(1'b0)
-  ) u_prim_fifo_sync_cmdreq (
-    .clk_i   (clk_i),
-    .rst_ni  (rst_ni),
-    .clr_i   (!enable_i),
-    .wvalid_i(sfifo_cmdreq_wvld),
-    .wready_o(sfifo_cmdreq_wrdy),
-    .wdata_i (sfifo_cmdreq_wdata),
-    .rvalid_o(sfifo_cmdreq_rvld),
-    .rready_i(sfifo_cmdreq_rrdy),
-    .rdata_o (sfifo_cmdreq_rdata),
-    .full_o  (),
-    .depth_o (),
-    .err_o   ()
-  );
 
   always_comb begin
-    req_data_fifo = req_data_i;
+    req_data = req_data_i;
     // Insert the FIPS info from entropy source on instantiate and reseed commands.
     // Else, keep the existing info (from state db).
-    req_data_fifo.fips = ((req_data_i.cmd == INS) || (req_data_i.cmd == RES)) ?
-                           req_entropy_fips_i : req_data_i.fips;
+    req_data.fips = ((req_data_i.cmd == INS) || (req_data_i.cmd == RES)) ?
+                      req_entropy_fips_i : req_data_i.fips;
   end
 
-  assign sfifo_cmdreq_wdata = {req_glast_i,
-                               req_entropy_i,
-                               req_data_fifo};
-
-  assign {cmdreq_glast,
-          cmdreq_entropy,
-          cmdreq_data}   = sfifo_cmdreq_rdata;
-
-  assign sfifo_cmdreq_wvld = enable_i && req_vld_i;
-  assign sfifo_cmdreq_rrdy = enable_i && (update_req_rdy_i || gen_adata_null_q) &&
-                             sfifo_cmdreq_rvld;
-  assign req_rdy_o = sfifo_cmdreq_wrdy;
-
-  assign fifo_cmdreq_err_o =
-         {( sfifo_cmdreq_wvld && !sfifo_cmdreq_wrdy),
-          ( sfifo_cmdreq_rrdy && !sfifo_cmdreq_rvld),
-          (!sfifo_cmdreq_wrdy && !sfifo_cmdreq_rvld)};
-
-  //--------------------------------------------
-  // Prepare (mostly: mux) values for update step
-  //--------------------------------------------
-
   assign prep_seed_material =
-         (cmdreq_data.cmd == INS) ? (cmdreq_entropy ^ cmdreq_data.pdata) :
-         (cmdreq_data.cmd == RES) ? (cmdreq_entropy ^ cmdreq_data.pdata) :
-         (cmdreq_data.cmd == GEN) ? cmdreq_data.pdata :
-         (cmdreq_data.cmd == UPD) ? cmdreq_data.pdata :
+         (req_data.cmd == INS) ? (req_entropy_i ^ req_data.pdata) :
+         (req_data.cmd == RES) ? (req_entropy_i ^ req_data.pdata) :
+         (req_data.cmd == GEN) ? req_data.pdata :
+         (req_data.cmd == UPD) ? req_data.pdata :
          '0;
 
   assign prep_key =
-         (cmdreq_data.cmd == INS) ? '0 :
-         (cmdreq_data.cmd == RES) ? cmdreq_data.key :
-         (cmdreq_data.cmd == GEN) ? cmdreq_data.key :
-         (cmdreq_data.cmd == UPD) ? cmdreq_data.key :
+         (req_data.cmd == INS) ? '0 :
+         (req_data.cmd == RES) ? req_data.key :
+         (req_data.cmd == GEN) ? req_data.key :
+         (req_data.cmd == UPD) ? req_data.key :
          '0;
 
   assign prep_v =
-         (cmdreq_data.cmd == INS) ? '0 :
-         (cmdreq_data.cmd == RES) ? cmdreq_data.v :
-         (cmdreq_data.cmd == GEN) ? cmdreq_data.v :
-         (cmdreq_data.cmd == UPD) ? cmdreq_data.v :
+         (req_data.cmd == INS) ? '0 :
+         (req_data.cmd == RES) ? req_data.v :
+         (req_data.cmd == GEN) ? req_data.v :
+         (req_data.cmd == UPD) ? req_data.v :
          '0;
 
   assign prep_rc =
-         (cmdreq_data.cmd == INS) ? '0 :
-         (cmdreq_data.cmd == RES) ? '0 :
-         (cmdreq_data.cmd == GEN) ? cmdreq_data.rs_ctr :
-         (cmdreq_data.cmd == UPD) ? cmdreq_data.rs_ctr :
+         (req_data.cmd == INS) ? '0 :
+         (req_data.cmd == RES) ? '0 :
+         (req_data.cmd == GEN) ? req_data.rs_ctr :
+         (req_data.cmd == UPD) ? req_data.rs_ctr :
          '0;
 
-  assign prep_gen_adata_null = (cmdreq_data.cmd == GEN) && (cmdreq_data.pdata == '0);
-
-  assign gen_adata_null_d = !enable_i ? '0 : prep_gen_adata_null;
-
-  // send to the update block
-  assign update_req_vld_o = sfifo_cmdreq_rvld && !prep_gen_adata_null;
+  // Request data for the update unit
   assign update_req_data_o = '{
-    inst_id: cmdreq_data.inst_id,
-    cmd:     cmdreq_data.cmd,
+    inst_id: req_data.inst_id,
+    cmd:     req_data.cmd,
     key:     prep_key,
     v:       prep_v,
     pdata:   prep_seed_material
   };
 
-  //--------------------------------------------
-  // fifo to stage rc and command, waiting for update block to ack
-  //--------------------------------------------
-
-  csrng_core_data_t rcstage_core_data_fifo;
-
-  prim_fifo_sync #(
-    .Width(RCStageFifoWidth),
-    .Pass(0),
-    .Depth(1),
-    .OutputZeroIfEmpty(1'b0)
-  ) u_prim_fifo_sync_rcstage (
-    .clk_i   (clk_i),
-    .rst_ni  (rst_ni),
-    .clr_i   (!enable_i),
-    .wvalid_i(sfifo_rcstage_wvld),
-    .wready_o(sfifo_rcstage_wrdy),
-    .wdata_i (sfifo_rcstage_wdata),
-    .rvalid_o(sfifo_rcstage_rvld),
-    .rready_i(sfifo_rcstage_rrdy),
-    .rdata_o (sfifo_rcstage_rdata),
-    .full_o  (),
-    .depth_o (),
-    .err_o   ()
-  );
-
+  // Splice muxed data fields into internal data path
   always_comb begin
-    rcstage_core_data_fifo = cmdreq_data;
-    rcstage_core_data_fifo.key    = prep_key;
-    rcstage_core_data_fifo.v      = prep_v;
-    rcstage_core_data_fifo.rs_ctr = prep_rc;
+    prep_core_data = req_data;
+    prep_core_data.key    = prep_key;
+    prep_core_data.v      = prep_v;
+    prep_core_data.rs_ctr = prep_rc;
   end
 
-  assign sfifo_rcstage_wdata = {cmdreq_glast,
-                                rcstage_core_data_fifo};
+  // There are two cases in which we don't need the update unit:
+  // 1) Generate commands with pdata equal to all-zero
+  // 2) The (rather trivial) uninstantiate command
+  // TODO(#28153) Clarify what the exact condition for skipping the initial update() call on
+  // GENerate commands is (pdata/adata being an all-zero vector or pdata/adata LENGTH being zero).
+  assign bypass_upd = ((req_data.cmd == GEN) && (req_data.pdata == '0)) || (req_data.cmd == UNI);
 
-  assign {rcstage_glast,
-          rcstage_data} = sfifo_rcstage_rdata;
-
-  assign sfifo_rcstage_wvld = sfifo_cmdreq_rrdy;
-  assign sfifo_rcstage_rrdy = sfifo_rcstage_rvld && (update_rsp_vld_i || gen_adata_null_q);
-
-  assign update_rsp_rdy_o = sfifo_rcstage_rvld && sfifo_keyvrc_wrdy;
-
-  assign fifo_rcstage_err_o =
-         {( sfifo_rcstage_wvld && !sfifo_rcstage_wrdy),
-          ( sfifo_rcstage_rrdy && !sfifo_rcstage_rvld),
-          (!sfifo_rcstage_wrdy && !sfifo_rcstage_rvld)};
-
-  //--------------------------------------------
-  // final cmd block processing
-  //--------------------------------------------
-
-  prim_fifo_sync #(
-    .Width(KeyVRCFifoWidth),
-    .Pass(0),
-    .Depth(1),
-    .OutputZeroIfEmpty(1'b0)
-  ) u_prim_fifo_sync_keyvrc (
-    .clk_i   (clk_i),
-    .rst_ni  (rst_ni),
-    .clr_i   (!enable_i),
-    .wvalid_i(sfifo_keyvrc_wvld),
-    .wready_o(sfifo_keyvrc_wrdy),
-    .wdata_i (sfifo_keyvrc_wdata),
-    .rvalid_o(sfifo_keyvrc_rvld),
-    .rready_i(sfifo_keyvrc_rrdy),
-    .rdata_o (sfifo_keyvrc_rdata),
-    .full_o  (),
-    .depth_o (),
-    .err_o   ()
-  );
-
-  assign sfifo_keyvrc_wvld = sfifo_rcstage_rrdy;
-
+  // Small FSM required to wait for a finished transaction on both the update unit
+  // request and response ports until asserting the req_rdy_o to the upstream requester
+  // in case the update unit is required.
   always_comb begin
-    keyvrc_data  = rcstage_data;
-    keyvrc_glast = rcstage_glast;
-    if (rcstage_data.cmd == UNI) begin
+    state_d = state_q;
+    req_rdy_o = 1'b0;
+    rsp_vld_o = 1'b0;
+    update_req_vld_o = 1'b0;
+    update_rsp_rdy_o = 1'b0;
+    sm_err_o = 1'b0;
+
+    unique case (state_q)
+      ReqIdle: begin
+        if (bypass_upd) begin
+          // The update unit is not required for the command at hand and we can
+          // complete the request handshake internally.
+          req_rdy_o = enable_i && rsp_rdy_i;
+          rsp_vld_o = req_vld_i;
+        end else begin
+          // Update unit is required - complete first the request and then the
+          // response handshake before asserting the upstrem ready.
+          update_req_vld_o = req_vld_i;
+          if (update_req_vld_o && update_req_rdy_i) begin
+            state_d = RspPend;
+          end
+        end
+      end
+      RspPend: begin
+        // We get here after having done a request handshake with the update unit.
+        // Now, wait for the response handshake to complete the transaction.
+        rsp_vld_o = update_rsp_vld_i;
+        update_rsp_rdy_o = rsp_rdy_i;
+        if (update_rsp_vld_i && update_rsp_rdy_o) begin
+          req_rdy_o = 1'b1;
+          state_d = ReqIdle;
+        end
+      end
+      Error: begin
+        sm_err_o = 1'b1;
+      end
+      default: begin
+        state_d = Error;
+        sm_err_o = 1'b1;
+      end
+    endcase
+  end
+
+  // Route either data from request input or update response to response output
+  always_comb begin
+    rsp_data_o  = prep_core_data;
+    rsp_glast_o = req_glast_i;
+    if (req_data_i.cmd == UNI) begin
       // Zeroize everything but inst_id and cmd (?)
-      keyvrc_data = '{default: '0};
-      keyvrc_data.inst_id = rcstage_data.inst_id;
-      keyvrc_data.cmd     = rcstage_data.cmd;
-    end else if (!gen_adata_null_q) begin
+      rsp_data_o = '{default: '0};
+      rsp_data_o.inst_id = req_data_i.inst_id;
+      rsp_data_o.cmd     = req_data_i.cmd;
+    end else if (!bypass_upd) begin
       // Update key and v with values from the update unit if
       // non-zero pdata were provided
-      keyvrc_data.key     = update_rsp_data_i.key;
-      keyvrc_data.v       = update_rsp_data_i.v;
-      keyvrc_data.inst_id = update_rsp_data_i.inst_id;
-      keyvrc_data.cmd     = update_rsp_data_i.cmd;
+      rsp_data_o.key     = update_rsp_data_i.key;
+      rsp_data_o.v       = update_rsp_data_i.v;
+      rsp_data_o.inst_id = update_rsp_data_i.inst_id;
+      rsp_data_o.cmd     = update_rsp_data_i.cmd;
     end
   end
-
-  assign sfifo_keyvrc_wdata = {keyvrc_glast,
-                               keyvrc_data};
-
-  assign sfifo_keyvrc_rrdy = rsp_rdy_i && sfifo_keyvrc_rvld;
-
-  // cmd response output assignments
-  assign {rsp_glast_o,
-          rsp_data_o} = sfifo_keyvrc_rdata;
-
-  assign rsp_vld_o = sfifo_keyvrc_rrdy;
-
-  assign fifo_keyvrc_err_o =
-         {( sfifo_keyvrc_wvld && !sfifo_keyvrc_wrdy),
-          ( sfifo_keyvrc_rrdy && !sfifo_keyvrc_rvld),
-          (!sfifo_keyvrc_wrdy && !sfifo_keyvrc_rvld)};
 
   // Unused signals
   logic [SeedLen-1:0] unused_upd_rsp_pdata;

@@ -60,6 +60,7 @@ class csrng_err_vseq extends csrng_base_vseq;
     $assertoff(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_updblk_arb.LockArbDecision_A");
     $assertoff(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_benblk_arb.ReqStaysHighUntilGranted0_M");
     $assertoff(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_updblk_arb.ReqStaysHighUntilGranted0_M");
+    $assertoff(0, "tb.dut.u_csrng_core.CsrngNoConcurrentGenCmdRsp_A");
     $assertoff(0, `HIER_PATH(`CMD_STAGE_0, u_state_regs_A));
     $assertoff(0, `HIER_PATH(`CMD_STAGE_1, u_state_regs_A));
     $assertoff(0, `HIER_PATH(`CMD_STAGE_2, u_state_regs_A));
@@ -99,10 +100,8 @@ class csrng_err_vseq extends csrng_base_vseq;
                               cfg.which_app_err_alert, fld_name), UVM_MEDIUM)
 
     case (cfg.which_err_code) inside
-      sfifo_cmd_err, sfifo_genbits_err, sfifo_cmdreq_err, sfifo_rcstage_err, sfifo_keyvrc_err,
-      sfifo_bencreq_err, sfifo_final_err, sfifo_gbencack_err, sfifo_grcstage_err,
-      sfifo_gadstage_err, sfifo_ggenbits_err, sfifo_cmdid_err, sfifo_updreq_err,
-      sfifo_bencack_err, sfifo_pdata_err, sfifo_ggenreq_err: begin
+      sfifo_cmd_err, sfifo_genbits_err, sfifo_final_err, sfifo_gbencack_err, sfifo_grcstage_err,
+      sfifo_gadstage_err, sfifo_ggenbits_err, sfifo_cmdid_err, sfifo_ggenreq_err: begin
         fld = csr.get_field_by_name(fld_name);
         fifo_base_path = fld_name.substr(0, last_index-1);
 
@@ -114,8 +113,7 @@ class csrng_err_vseq extends csrng_base_vseq;
         `uvm_info(`gfn, $sformatf("Forcing this FIFO error type %s", cfg.which_fifo_err.name()),
                   UVM_MEDIUM)
 
-        if (cfg.which_err_code == sfifo_updreq_err || cfg.which_err_code == sfifo_bencack_err ||
-            cfg.which_err_code == sfifo_pdata_err || cfg.which_err_code == sfifo_ggenreq_err) begin
+        if (cfg.which_err_code == sfifo_ggenreq_err) begin
           force_all_fifo_errs_exception(fifo_forced_paths, fifo_forced_values, path_exts, fld,
                                         1'b1, cfg.which_fifo_err);
 
@@ -154,7 +152,8 @@ class csrng_err_vseq extends csrng_base_vseq;
         csr_rd(.ptr(ral.err_code), .value(backdoor_err_code_val));
         cov_vif.cg_err_code_sample(.err_code(backdoor_err_code_val));
       end
-      cmd_stage_sm_err, main_sm_err, drbg_gen_sm_err, drbg_updbe_sm_err, drbg_updob_sm_err: begin
+      cmd_stage_sm_err, main_sm_err, drbg_cmd_sm_err, drbg_gen_sm_err, drbg_updbe_sm_err,
+      drbg_updob_sm_err: begin
         fld = csr.get_field_by_name(fld_name);
         path = cfg.csrng_path_vif.sm_err_path(fld_name.substr(0, last_index-1),
                                               cfg.which_app_err_alert);
@@ -221,17 +220,17 @@ class csrng_err_vseq extends csrng_base_vseq;
           cmd_gen_cnt_sel: begin
             fld = csr.get_field_by_name(fld_name);
             path = cfg.csrng_path_vif.cmd_gen_cnt_err_path(cfg.which_app_err_alert);
-            force_cnt_err(path, fld, 1'b1, 13);
+            force_cnt_err(path, fld, 1'b1, csrng_pkg::GenBitsCtrWidth);
           end
           drbg_upd_cnt_sel: begin
             fld = csr.get_field_by_name(fld_name);
             path = cfg.csrng_path_vif.drbg_upd_cnt_err_path();
-            force_cnt_err(path, fld, 1'b1, 32);
+            force_cnt_err(path, fld, 1'b1, csrng_pkg::CtrLen);
           end
           drbg_gen_cnt_sel: begin
             fld = csr.get_field_by_name(fld_name);
             path = cfg.csrng_path_vif.drbg_gen_cnt_err_path();
-            force_cnt_err(path, fld, 1'b1, 32);
+            force_cnt_err(path, fld, 1'b1, csrng_pkg::CtrLen);
           end
         endcase
         csr_rd(.ptr(ral.err_code), .value(backdoor_err_code_val));
@@ -262,10 +261,7 @@ class csrng_err_vseq extends csrng_base_vseq;
         value1 = fifo_err_value[0][path_key];
         value2 = fifo_err_value[1][path_key];
 
-        if (cfg.which_err_code == fifo_read_error &&
-           ((cfg.which_fifo == sfifo_ggenreq) || (cfg.which_fifo == sfifo_pdata) ||
-            (cfg.which_fifo == sfifo_bencack) || (cfg.which_fifo == sfifo_updreq)))
-        begin
+        if ((cfg.which_err_code == fifo_read_error) && (cfg.which_fifo == sfifo_ggenreq)) begin
           force_fifo_err_exception(path1, path2, 1'b1, 1'b0, 1'b0, fld, 1'b1);
 
         // For sfifo_gadstage the down stream FIFO also takes inputs from sources other than
@@ -303,13 +299,12 @@ class csrng_err_vseq extends csrng_base_vseq;
         csr_rd(.ptr(ral.err_code), .value(backdoor_err_code_val));
         cov_vif.cg_err_code_sample(.err_code(backdoor_err_code_val));
       end
-      sfifo_cmd_err_test, sfifo_genbits_err_test, sfifo_cmdreq_err_test, sfifo_rcstage_err_test,
-      sfifo_keyvrc_err_test, sfifo_updreq_err_test, sfifo_bencreq_err_test, sfifo_bencack_err_test,
-      sfifo_pdata_err_test, sfifo_final_err_test, sfifo_gbencack_err_test, sfifo_grcstage_err_test,
+      sfifo_cmd_err_test, sfifo_genbits_err_test,
+      sfifo_final_err_test, sfifo_gbencack_err_test, sfifo_grcstage_err_test,
       sfifo_ggenreq_err_test, sfifo_gadstage_err_test, sfifo_ggenbits_err_test,
-      sfifo_cmdid_err_test, cmd_stage_sm_err_test, main_sm_err_test, drbg_gen_sm_err_test,
-      drbg_updbe_sm_err_test, drbg_updob_sm_err_test, aes_cipher_sm_err_test, cmd_gen_cnt_err_test,
-      fifo_write_err_test, fifo_read_err_test, fifo_state_err_test: begin
+      sfifo_cmdid_err_test, cmd_stage_sm_err_test, main_sm_err_test, drbg_cmd_sm_err_test,
+      drbg_gen_sm_err_test, drbg_updbe_sm_err_test, drbg_updob_sm_err_test, aes_cipher_sm_err_test,
+      cmd_gen_cnt_err_test, fifo_write_err_test, fifo_read_err_test, fifo_state_err_test: begin
         fld = csr.get_field_by_name(fld_name.substr(0, last_index-1));
         err_code_test_bit = fld.get_lsb_pos();
         csr_wr(.ptr(ral.err_code_test.err_code_test), .value(err_code_test_bit));
@@ -341,6 +336,7 @@ class csrng_err_vseq extends csrng_base_vseq;
 
     if (cfg.which_err_code inside {cmd_stage_sm_err, cmd_stage_sm_err_test,
                                    main_sm_err, main_sm_err_test,
+                                   drbg_cmd_sm_err, drbg_cmd_sm_err_test,
                                    drbg_gen_sm_err, drbg_gen_sm_err_test,
                                    drbg_updbe_sm_err, drbg_updbe_sm_err_test,
                                    drbg_updob_sm_err, drbg_updob_sm_err_test,
@@ -363,6 +359,7 @@ class csrng_err_vseq extends csrng_base_vseq;
     $asserton(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_updblk_arb.LockArbDecision_A");
     $asserton(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_benblk_arb.ReqStaysHighUntilGranted0_M");
     $asserton(0, "tb.dut.u_csrng_core.u_prim_arbiter_ppc_updblk_arb.ReqStaysHighUntilGranted0_M");
+    $asserton(0, "tb.dut.u_csrng_core.CsrngNoConcurrentGenCmdRsp_A");
     $asserton(0, `HIER_PATH(`CMD_STAGE_0, u_state_regs_A));
     $asserton(0, `HIER_PATH(`CMD_STAGE_1, u_state_regs_A));
     $asserton(0, `HIER_PATH(`CMD_STAGE_2, u_state_regs_A));

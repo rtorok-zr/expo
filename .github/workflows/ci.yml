@@ -127,16 +127,22 @@ jobs:
         run: ./bazelisk.sh test //quality:buildifier_check
       - name: Vendored files
         run: ./ci/scripts/check-vendoring.sh
-      - name: Verible RTL
+      - name: Verible RTL earlgrey
         run: ./ci/scripts/verible-lint.sh rtl earlgrey
-      - name: Verible DV
+      - name: Verible DV earlgrey
         run: ./ci/scripts/verible-lint.sh dv earlgrey
-      - name: Verible FPV
+      - name: Verible FPV earlgrey
         run: ./ci/scripts/verible-lint.sh fpv earlgrey
+      - name: Verible RTL darjeeling
+        run: ./ci/scripts/verible-lint.sh rtl darjeeling
+      - name: Verible DV darjeeling
+        run: ./ci/scripts/verible-lint.sh dv darjeeling
+      - name: Verible FPV darjeeling
+        run: ./ci/scripts/verible-lint.sh fpv darjeeling
       - name: Validate alert classification for Earl Grey
-        run: ./ci/scripts/validate_alert_classification.sh hw/top_earlgrey/ip_autogen/alert_handler/data/top_earlgrey_alert_handler.ipconfig.hjson hw/top_earlgrey/data/otp/otp_ctrl_img_owner_sw_cfg.hjson
+        run: ./ci/scripts/validate_alert_classification.py hw/top_earlgrey/ip_autogen/alert_handler/data/top_earlgrey_alert_handler.ipconfig.hjson "$(realpath hw/top_earlgrey/data/otp/otp_ctrl_img_owner_sw_cfg.hjson)"
       - name: Validate alert classification for Darjeeling
-        run: ./ci/scripts/validate_alert_classification.sh hw/top_darjeeling/ip_autogen/alert_handler/data/top_darjeeling_alert_handler.ipconfig.hjson hw/top_darjeeling/data/otp/otp_ctrl_img_owner_sw_cfg.hjson
+        run: ./ci/scripts/validate_alert_classification.py hw/top_darjeeling/ip_autogen/alert_handler/data/top_darjeeling_alert_handler.ipconfig.hjson "$(realpath hw/top_darjeeling/data/otp/otp_ctrl_img_owner_sw_cfg.hjson)"
 
   dependency-licenses:
     name: Check software dependency licenses
@@ -420,7 +426,7 @@ jobs:
   dj_sw_build_test:
     name: Build and test Darjeeling software
     runs-on:
-      group: zerorisc-none
+      group: zerorisc-large
     timeout-minutes: 120
     needs: quick_lint
     if: ${{ github.event_name != 'merge_group' }}
@@ -464,6 +470,7 @@ jobs:
     runs-on:
       group: zerorisc-none
     needs: quick_lint
+    if: ${{ github.event_name != 'merge_group' }}
     steps:
       - uses: actions/checkout@v4
         with:

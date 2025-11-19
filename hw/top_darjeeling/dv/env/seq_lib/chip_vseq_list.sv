@@ -47,7 +47,6 @@
 `include "chip_sw_sleep_pin_wake_vseq.sv"
 `include "chip_sw_sleep_pin_retention_vseq.sv"
 `include "chip_sw_soc_proxy_smoke_vseq.sv"
-`include "chip_sw_soc_proxy_external_alerts_vseq.sv"
 `include "chip_sw_soc_proxy_external_wakeup_vseq.sv"
 `include "chip_sw_soc_proxy_gpio_vseq.sv"
 // TODO(#462): Adapt keymgr tests to keymgr_dpe
@@ -85,6 +84,5 @@
 `include "chip_sw_rom_e2e_asm_init_vseq.sv"
 `include "chip_sw_rom_e2e_jtag_debug_vseq.sv"
 `include "chip_sw_rom_e2e_jtag_inject_vseq.sv"
-`include "chip_sw_ast_clk_rst_inputs_vseq.sv"
 `include "chip_sw_power_virus_vseq.sv"
 `include "chip_sw_dma_spi_hw_handshake_vseq.sv"

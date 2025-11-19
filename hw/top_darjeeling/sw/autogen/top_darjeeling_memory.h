@@ -4,7 +4,7 @@
 //
 // ------------------- W A R N I N G: A U T O - G E N E R A T E D   C O D E !! -------------------//
 // PLEASE DO NOT HAND-EDIT THIS FILE. IT HAS BEEN AUTO-GENERATED WITH THE FOLLOWING COMMAND:
-// util/topgen.py -t hw/top_darjeeling/data/top_darjeeling.hjson \
+// util/topgen.py -t hw/top_darjeeling/data/top_darjeeling.hjson
 //                -o hw/top_darjeeling/
 
 #ifndef OPENTITAN_HW_TOP_DARJEELING_SW_AUTOGEN_TOP_DARJEELING_MEMORY_H_
@@ -374,7 +374,7 @@
  * address between #TOP_DARJEELING_SOC_PROXY_CORE_BASE_ADDR and
  * `TOP_DARJEELING_SOC_PROXY_CORE_BASE_ADDR + TOP_DARJEELING_SOC_PROXY_CORE_SIZE_BYTES`.
  */
-#define TOP_DARJEELING_SOC_PROXY_CORE_SIZE_BYTES 0x10
+#define TOP_DARJEELING_SOC_PROXY_CORE_SIZE_BYTES 0x8
 /**
  * Peripheral base address for regs device on sram_ctrl_ret_aon in top darjeeling.
  *

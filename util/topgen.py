@@ -41,7 +41,7 @@ from topgen.c_test import TopGenCTest
 from topgen.clocks import Clocks
 from topgen.gen_dv import gen_dv
 from topgen.gen_top_docs import gen_top_docs
-from topgen.lib import find_module, find_modules, load_cfg, write_file_secure
+from topgen.lib import find_module, find_modules, load_cfg, write_file_secure, get_ipgen_params
 from topgen.merge import (
     amend_alert, amend_interrupt, amend_pinmux_io, amend_racl,
     amend_reset_request, amend_resets, amend_wkup, commit_alert_modules,
@@ -66,7 +66,7 @@ lichdr = """// Copyright lowRISC contributors (OpenTitan project).
 """
 genhdr = lichdr + warnhdr
 
-GENCMD = ("// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson \\\n"
+GENCMD = ("// util/topgen.py -t hw/{top_name}/data/{top_name}.hjson\n"
           "//                -o hw/{top_name}/")
 
 SRCTREE_TOP = Path(__file__).parents[1].resolve()
@@ -282,11 +282,6 @@ def generate_ipgen(top: ConfigT, module: ConfigT, params: ParamsT,
             f"Unexpected uniquified name: expected {module_instance_name}, "
             f"got {uniq_name}")
     ipgen_render(module["template_type"], topname, params, out_path)
-
-
-def get_ipgen_params(module: ConfigT) -> ParamsT:
-    """Return ipgen params, if defined for this module"""
-    return deepcopy(module.get("ipgen_params", {}))
 
 
 def _get_alert_handler_params(top: ConfigT, name: str) -> ParamsT:
@@ -781,7 +776,7 @@ def _get_ac_range_check_params(top: ConfigT) -> ParamsT:
 def _get_racl_params(top: ConfigT) -> ParamsT:
     """Extracts parameters for racl_ctrl ipgen."""
     module = lib.find_module(top["module"], "racl_ctrl")
-    racl_group = module.get("racl_group", "Null")
+    racl_group = module.get("ipgen_params", {}).get("racl_group", "Null")
     if len(top["racl"]["policies"]) == 1:
         # If there is only one set of policies, take the first one
         policies = list(top["racl"]["policies"].values())[0]
@@ -806,6 +801,7 @@ def _get_racl_params(top: ConfigT) -> ParamsT:
         "nr_ctn_uid_bits": top["racl"]["nr_ctn_uid_bits"],
         "nr_policies": top["racl"]["nr_policies"],
         'nr_subscribing_ips': num_subscribing_ips[racl_group],
+        "racl_group": racl_group,
         "policies": policies
     })
     return ipgen_params
@@ -1906,20 +1902,23 @@ waive --rule=line-length --location="{rnd_cnst_sv_file}"
             lc_seed = topcfg["seed"]["lc_ctrl_seed"]
             lc_st_enc = LcStEnc(lc_state_def_file, lc_seed.value)
             lc_st_enc_path = f"rtl/autogen/{lc_seed.seed_mode}"
-            lc_st_enc_file = "lc_ctrl_state_pkg.sv"
+            lc_st_enc_file = "lc_ctrl_token_pkg.sv"
             render_template(IP_RAW_PATH / "lc_ctrl" / "rtl" / "lc_ctrl_state_pkg.sv.tpl",
+                            IP_RAW_PATH / "lc_ctrl" / "rtl" / "lc_ctrl_state_pkg.sv",
+                            lc_st_enc=lc_st_enc)
+            render_template(IP_RAW_PATH / "lc_ctrl" / "rtl" / "lc_ctrl_token_pkg.sv.tpl",
                             out_path / lc_st_enc_path / lc_st_enc_file,
                             secure=True, lc_st_enc=lc_st_enc)
             render_template(TOPGEN_TEMPLATE_PATH / "core_file.core.tpl",
                             out_path / lc_st_enc_path /
-                            f"top_{topname}_{lc_seed.seed_mode}_lc_ctrl_state_pkg.core",
+                            f"top_{topname}_{lc_seed.seed_mode}_lc_ctrl_token_pkg.core",
                             package=(
                                 f"lowrisc:{topname}_constants:"
-                                f"{lc_seed.seed_mode}_lc_ctrl_state_pkg:0.1"
+                                f"{lc_seed.seed_mode}_lc_ctrl_token_pkg:0.1"
                             ),
-                            description="LC Controller State Encoding Package",
-                            virtual_package="lowrisc:virtual_ip:lc_ctrl_state_pkg",
-                            dependencies=["lowrisc:prim:util"],
+                            description="LC Controller Token Package",
+                            virtual_package="lowrisc:virtual_constants:lc_ctrl_token_pkg",
+                            dependencies=["lowrisc:ip:lc_ctrl_state_pkg"],
                             files=[lc_st_enc_file])
 
         # The C / SV file needs some complex information, so we initialize this
