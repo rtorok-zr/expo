@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright lowRISC contributors (OpenTitan project).
+# Copyright zeroRISC Inc.
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
@@ -23,6 +24,7 @@ class ConstantContext:
     This datatype is used to track and evaluate GPR pointers for indirect
     references.
     '''
+
     def __init__(self, values: Dict[str, int]):
         # The x0 register needs to always be 0
         assert values.get('x0', None) == 0
@@ -95,7 +97,38 @@ class ConstantContext:
             if grs1_name in self.values:
                 grd_name = get_op_val_str(insn, op_vals, 'grd')
                 # Operand is a constant; add/update grd
-                new_values[grd_name] = self.values[grs1_name] + op_vals['imm']
+                new_values[grd_name] = (self.values[grs1_name] +
+                                        op_vals['imm']) % (1 << 32)
+        elif insn.mnemonic == 'slli':
+            grs1_name = get_op_val_str(insn, op_vals, 'grs1')
+            if grs1_name in self.values:
+                grd_name = get_op_val_str(insn, op_vals, 'grd')
+                # Operand is a constant; add/update grd
+                new_values[grd_name] = (
+                    self.values[grs1_name] << op_vals['shamt']) % (1 << 32)
+        elif insn.mnemonic == 'srli':
+            grs1_name = get_op_val_str(insn, op_vals, 'grs1')
+            if grs1_name in self.values:
+                grd_name = get_op_val_str(insn, op_vals, 'grd')
+                # Operand is a constant; add/update grd
+                new_values[
+                    grd_name] = self.values[grs1_name] >> op_vals['shamt']
+        elif insn.mnemonic == 'add':
+            grs1_name = get_op_val_str(insn, op_vals, 'grs1')
+            grs2_name = get_op_val_str(insn, op_vals, 'grs2')
+            if grs1_name in self.values and grs2_name in self.values:
+                grd_name = get_op_val_str(insn, op_vals, 'grd')
+                # Operand is a constant; add/update grd
+                new_values[grd_name] = (self.values[grs1_name] +
+                                        self.values[grs2_name]) % (1 << 32)
+        elif insn.mnemonic == 'sub':
+            grs1_name = get_op_val_str(insn, op_vals, 'grs1')
+            grs2_name = get_op_val_str(insn, op_vals, 'grs2')
+            if grs1_name in self.values and grs2_name in self.values:
+                grd_name = get_op_val_str(insn, op_vals, 'grd')
+                # Operand is a constant; add/update grd
+                new_values[grd_name] = (self.values[grs1_name] -
+                                        self.values[grs2_name]) % (1 << 32)
         elif insn.mnemonic == 'lui':
             grd_name = get_op_val_str(insn, op_vals, 'grd')
             new_values[grd_name] = op_vals['imm'] << 12
@@ -108,7 +141,8 @@ class ConstantContext:
                     inc_op = op.name[:-(len('_inc'))]
                     inc_name = get_op_val_str(insn, op_vals, inc_op)
                     if inc_name in self.values:
-                        new_values[inc_name] = self.values[inc_name] + 1
+                        new_values[inc_name] = (self.values[inc_name] +
+                                                1) % (1 << 32)
 
         # If the instruction's information-flow graph indicates that we updated
         # any constant register other than the ones handled above, the value of
